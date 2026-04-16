@@ -1,0 +1,36 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: minecraft-java
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    environment:
+      # Accept the Minecraft EULA
+      EULA: "TRUE"
+      # Let itzg pick the latest stable Java automatically
+      TYPE: "FABRIC"
+      VERSION: "LATEST"
+      # Auto-download mods from Modrinth (comma separated project slugs or IDs)
+      MODRINTH_PROJECTS: "fabric-api,lithium,spark,iris"
+      # RAM allocation - adjust MAX_MEMORY for your machine
+      INIT_MEMORY: "1G"
+      MAX_MEMORY: "4G"
+      # Server settings
+      DIFFICULTY: "easy"
+      MODE: "creative"
+      MOTD: "SUPER_SECRET_SERVER"
+      MAX_PLAYERS: "20"
+      ONLINE_MODE: "TRUE"
+      PVP: "true"
+      VIEW_DISTANCE: "20"
+      SIMULATION_DISTANCE: "10"
+      # World Generation Seed (Huge Cherry Blossom at spawn)
+      SEED: "1691256543523180978"
+      # Timezone for logs
+      TZ: "America/New_York"
+    volumes:
+      # Persist world data and config on the host
+      - ./data:/data
+    stdin_open: true
+    tty: true

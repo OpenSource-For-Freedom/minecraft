@@ -1,0 +1,32 @@
+# Spark profiler temp files
+data/config/spark/tmp/
+
+# World saves (large binary data)
+data/world/
+data/world_nether/
+data/world_the_end/
+
+# Server JARs and runtime libraries
+data/*.jar
+data/libraries/
+data/.fabric/
+data/.fabric-manifest.json
+data/.install-fabric.env
+data/.modrinth-manifest.json
+data/.rcon-cli.env
+data/.rcon-cli.yaml
+data/.cache/
+data/versions/
+
+# Logs
+data/logs/
+
+# Mod JARs (binary)
+data/mods/
+
+# Server folder JARs and logs
+server/*.jar
+server/*.log
+
+# Backups (large zips)
+backup/
