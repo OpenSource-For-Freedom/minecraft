@@ -1,4 +1,4 @@
-# Minecraft Java Server 26.1.1
+# Minecraft Java Server 26.1.2
 
 ## Start / Stop
 
