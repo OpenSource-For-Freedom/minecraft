@@ -1,19 +1,49 @@
 services:
   minecraft:
-    image: itzg/minecraft-server:latest
+  ##### WITH MODS
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: minecraft-java:secure
     container_name: minecraft-java
     restart: unless-stopped
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    init: true
+    stop_grace_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+          cpus: "4.0"
+          pids: 512
+        reservations:
+          memory: 4g
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     ports:
-      - "25565:25565"
-      - "8100:8100"        # BlueMap web viewer
-      - "24454:24454/udp"  # Simple Voice Chat
+      - "25565:25565"            # Minecraft (public)
+      - "24454:24454/udp"        # Simple Voice Chat (public)
+      - "127.0.0.1:8100:8100"    # BlueMap — localhost only; front with a TLS reverse proxy
     environment:
-      # Accept the Minecraft EULA
       EULA: "TRUE"
-      # Let itzg pick the latest stable Java automatically
       TYPE: "FABRIC"
       VERSION: "LATEST"
-      # Auto-download mods from Modrinth (one per line; ? = optional/skip if incompatible)
       MODRINTH_PROJECTS: |
         fabric-api
         lithium
@@ -25,12 +55,9 @@ services:
         chunky
         simple-voice-chat
         origins?
-      # Auto-download required mod dependencies
       MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
-      # RAM allocation - adjust MAX_MEMORY for your machine
       INIT_MEMORY: "1G"
       MAX_MEMORY: "4G"
-      # Server settings
       DIFFICULTY: "easy"
       MODE: "creative"
       MOTD: "SUPER_SECRET_SERVER"
@@ -39,12 +66,9 @@ services:
       PVP: "true"
       VIEW_DISTANCE: "20"
       SIMULATION_DISTANCE: "10"
-      # World Generation Seed (Huge Cherry Blossom at spawn)
       SEED: "1691256543523180978"
-      # Timezone for logs
       TZ: "America/New_York"
     volumes:
-      # Persist world data and config on the host
       - ./data:/data
     stdin_open: true
     tty: true

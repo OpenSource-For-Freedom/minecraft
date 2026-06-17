@@ -1,0 +1,9 @@
+# tiny beans
+data/
+backup/
+server/
+*.ps1
+*.txt
+*.md
+.git/
+.gitignore
