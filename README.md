@@ -14,6 +14,7 @@ docker restart minecraft-java
 ```
 
 ## Connect
+- To host and play on the same device
 
 | Who | Address |
 |---|---|
