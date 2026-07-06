@@ -38,35 +38,39 @@ services:
 
     ports:
       - "25565:25565"            # Minecraft (public)
-      - "24454:24454/udp"        # Simple Voice Chat (public)
       - "127.0.0.1:8100:8100"    # BlueMap — localhost only; front with a TLS reverse proxy
     environment:
       EULA: "TRUE"
-      TYPE: "FABRIC"
-      VERSION: "LATEST"
-      MODRINTH_PROJECTS: |
-        fabric-api
-        lithium
-        spark
-        iris
-        luckperms
-        styled-chat
-        bluemap?
-        chunky
-        simple-voice-chat
-        origins?
-      MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
+      TYPE: "FORGE"
+      VERSION: "1.20.1"          # best Forge mod support; do NOT bump without re-checking mods
+      # Full mod list lives in the .mrpack (mods download on first boot).
+      MODRINTH_MODPACK: "/data/EduCraftClientServer.mrpack"
+      # Keep the world/config when you update the pack; only replace mods.
+      MODRINTH_EXCLUDE_FILES: ""
       INIT_MEMORY: "1G"
       MAX_MEMORY: "4G"
       DIFFICULTY: "easy"
       MODE: "creative"
-      MOTD: "SUPER_SECRET_SERVER"
+      MOTD: "Safe Kids Server"
+
+      # --- KID-SAFETY: only approved players can join ---
+      ENABLE_WHITELIST: "TRUE"
+      ENFORCE_WHITELIST: "TRUE"          # kicks anyone removed from the whitelist immediately
+      OPS: "Melfonz1960"                 # your Minecraft username = the only admin
+      # WHITELIST: add kids' usernames here comma-separated, e.g. "kid1,kid2,friend1"
+      WHITELIST: ""
+
+      # --- KID-SAFETY: lock down risky gameplay ---
+      PVP: "false"                       # no attacking each other
+      ENABLE_COMMAND_BLOCK: "false"      # no redstone command-block exploits
+      FORCE_GAMEMODE: "true"             # everyone stays in the set gamemode
+      SPAWN_PROTECTION: "16"             # kids can't grief the spawn area
+      ALLOW_FLIGHT: "true"              # required for creative
+
       MAX_PLAYERS: "20"
-      ONLINE_MODE: "TRUE"
-      PVP: "true"
-      VIEW_DISTANCE: "20"
-      SIMULATION_DISTANCE: "10"
-      SEED: "1691256543523180978"
+      ONLINE_MODE: "TRUE"               # Java accounts only (blocks cracked/anonymous clients)
+      VIEW_DISTANCE: "12"
+      SIMULATION_DISTANCE: "8"
       TZ: "America/New_York"
     volumes:
       - ./data:/data

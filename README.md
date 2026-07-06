@@ -1,4 +1,23 @@
-# Minecraft Java Server 26.1.1
+# Safe Kids Minecraft Server (Forge 1.20.1)
+
+A whitelist-only, hardened Minecraft server for kids and their approved friends.
+Only players you add can join. See `docker-compose.yml` for all safety settings.
+
+## First-time setup
+
+1. In `docker-compose.yml`, set `OPS` to **your** Minecraft username (you become the only admin).
+2. Add your kids + their friends to `WHITELIST` (comma-separated usernames).
+3. `docker compose up -d`
+
+## Who can play (the safety control)
+
+Only whitelisted usernames can join. Add/remove kids live without restarting:
+
+```powershell
+docker exec -i minecraft-java rcon-cli whitelist add USERNAME
+docker exec -i minecraft-java rcon-cli whitelist remove USERNAME   # kicked immediately
+docker exec -i minecraft-java rcon-cli whitelist list
+```
 
 ## Start / Stop
 
