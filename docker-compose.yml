@@ -43,14 +43,19 @@ services:
       EULA: "TRUE"
       TYPE: "FORGE"
       VERSION: "1.20.1"          # best Forge mod support; do NOT bump without re-checking mods
-      # One pack for client and server. This is the SAME file players install on
-      # their client; per-file env flags make the server skip client-only mods
-      # (Xaero's), so client and server always run identical mod versions.
-      MODRINTH_MODPACK: "/data/EduCraftClient.mrpack"
-      # Server-only admin mods, not part of the player pack. Added on top of it.
+      # The shared mods, by exact Modrinth CDN url — the SAME jars the client
+      # pack (data/EduCraftClient.mrpack) installs, so client and server run
+      # byte-identical versions. Client-only mods (Xaero's) are intentionally
+      # absent here. itzg's MODRINTH_MODPACK doesn't read a local .mrpack in this
+      # image, so we list the jars directly. To refresh after changing the pack:
+      # read each file's downloads[0] from the pack's modrinth.index.json where
+      # env.server != "unsupported", and join with commas.
+      MODS: "https://cdn.modrinth.com/data/LNytGWDc/versions/8amzvn9x/create-1.20.1-6.0.8.jar,https://cdn.modrinth.com/data/gu7yAYhd/versions/rx9gr1rz/cc-tweaked-1.20.1-forge-1.120.0.jar,https://cdn.modrinth.com/data/fXt291FO/versions/yxrimuPr/cccbridge-mc1.20.1-v1.7.1-forge.jar,https://cdn.modrinth.com/data/SOw6jD6x/versions/mIP0ApJY/AdvancedPeripherals-1.20.1-0.7.48r.jar,https://cdn.modrinth.com/data/R2OftAxM/versions/CsjS7EkP/FarmersDelight-1.20.1-1.3.2.jar,https://cdn.modrinth.com/data/WFwYiVoG/versions/Jo8EwiDR/letsdo-bakery-forge-1.1.15.jar,https://cdn.modrinth.com/data/1DWmBJVA/versions/2I4cH49O/letsdo-vinery-forge-1.4.41.jar,https://cdn.modrinth.com/data/wvMc8AJt/versions/eAALa47O/lightmanscurrency-1.20.1-2.3.0.5.jar,https://cdn.modrinth.com/data/LOpKHB2A/versions/sKoHLGbK/waystones-forge-1.20.1-14.1.20.jar,https://cdn.modrinth.com/data/SaCpeal4/versions/gBDsc134/comforts-forge-6.4.0%2B1.20.1.jar,https://cdn.modrinth.com/data/nU0bVIaL/versions/94dtOLgZ/Patchouli-1.20.1-85-FORGE.jar,https://cdn.modrinth.com/data/u6dRKJwZ/versions/vnxhddW4/jei-1.20.1-forge-15.20.0.133.jar,https://cdn.modrinth.com/data/lhGA9TYQ/versions/1MKTLiiG/architectury-9.2.14-forge.jar,https://cdn.modrinth.com/data/4XJZeZbM/versions/uEaTMht9/letsdo-API-forge-1.2.15-forge.jar,https://cdn.modrinth.com/data/MBAkmtvl/versions/8rz04Kha/balm-forge-1.20.1-7.3.38-all.jar,https://cdn.modrinth.com/data/5A34Stj8/versions/5J8TMODW/ponderjs-1.20.1-2.1.0.jar,https://cdn.modrinth.com/data/umyGl7zF/versions/g5igndAv/kubejs-forge-2001.6.5-build.16.jar,https://cdn.modrinth.com/data/sk9knFPE/versions/maCpsT70/rhino-forge-2001.2.3-build.6.jar"
+      # Server-only admin mods, not in the player pack.
       MODRINTH_PROJECTS: "luckperms,profanityguard,bluemap"
-      # Keep the world/config when you update the pack; only replace mods.
-      MODRINTH_EXCLUDE_FILES: ""
+      # Wipe mods not in the lists above on each boot, so version bumps replace
+      # cleanly instead of leaving a stale jar behind (a classic mismatch cause).
+      REMOVE_OLD_MODS: "TRUE"
       INIT_MEMORY: "1G"
       MAX_MEMORY: "4G"
       DIFFICULTY: "easy"
