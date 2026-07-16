@@ -38,7 +38,8 @@ services:
 
     ports:
       - "25565:25565"            # Minecraft (public)
-      - "127.0.0.1:8100:8100"    # BlueMap — localhost only; front with a TLS reverse proxy
+      - "8100:8100"              # BlueMap web map — open http://SERVER_IP:8100 in a browser
+                                 # (also open port 8100 in your host/cloud firewall)
     environment:
       EULA: "TRUE"
       TYPE: "FORGE"
