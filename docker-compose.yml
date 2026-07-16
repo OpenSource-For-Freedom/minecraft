@@ -17,13 +17,14 @@ services:
       - /tmp:size=512m
     init: true
     stop_grace_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 6g
-          cpus: "4.0"
-        reservations:
-          memory: 4g
+    # Service-level resource limits: enforced by plain (non-swarm) Compose,
+    # unlike a deploy.resources block. pids_limit caps processes (fork-bomb
+    # guard); it can't live alongside a deploy.resources.limits block without
+    # Compose flagging a phantom pids conflict.
+    mem_limit: 6g
+    mem_reservation: 4g
+    cpus: 2.0
+    pids_limit: 512
     ulimits:
       nofile:
         soft: 4096
