@@ -17,12 +17,14 @@ services:
       - /tmp:size=512m
     init: true
     stop_grace_period: 120s
+    # Cap processes at the service level (deploy.resources.limits.pids is
+    # swarm-only and rejected by non-swarm Compose).
+    pids_limit: 512
     deploy:
       resources:
         limits:
           memory: 6g
           cpus: "4.0"
-          pids: 512
         reservations:
           memory: 4g
     ulimits:
