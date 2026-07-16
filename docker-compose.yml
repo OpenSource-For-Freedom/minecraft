@@ -43,8 +43,12 @@ services:
       EULA: "TRUE"
       TYPE: "FORGE"
       VERSION: "1.20.1"          # best Forge mod support; do NOT bump without re-checking mods
-      # Full mod list lives in the .mrpack (mods download on first boot).
-      MODRINTH_MODPACK: "/data/EduCraftClientServer.mrpack"
+      # One pack for client and server. This is the SAME file players install on
+      # their client; per-file env flags make the server skip client-only mods
+      # (Xaero's), so client and server always run identical mod versions.
+      MODRINTH_MODPACK: "/data/EduCraftClient.mrpack"
+      # Server-only admin mods, not part of the player pack. Added on top of it.
+      MODRINTH_PROJECTS: "luckperms,profanityguard,bluemap"
       # Keep the world/config when you update the pack; only replace mods.
       MODRINTH_EXCLUDE_FILES: ""
       INIT_MEMORY: "1G"
