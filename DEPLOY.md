@@ -47,6 +47,14 @@ docker logs -f minecraft-java   # wait for: Done (...)! For help, type "help"
 First boot installs Forge + downloads all mods (a few minutes). The world
 generates fresh on 1.20.1 — no old-world version conflicts.
 
+> Use **Compose v2** (`docker compose`, with a space). Some older droplet images
+> ship only the Python `docker-compose` v1.29, which crashes on newer image
+> metadata (`KeyError: 'ContainerConfig'`). If you only have v1, install v2:
+> ```bash
+> sudo curl -SL https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+> sudo chmod +x /usr/local/bin/docker-compose
+> ```
+
 ## 4. Connect & admin
 
 - Players connect to **`YOUR_DROPLET_IP`** (port 25565 is the default, no need to type it).
@@ -56,7 +64,32 @@ generates fresh on 1.20.1 — no old-world version conflicts.
   ```
 - You (`Melfonz1960`) are already set as the only op.
 
-## 5. Backups on the droplet
+## 5. Updating mods or settings
+
+The players' modpack and the server run from the **same** `data/EduCraftClient.mrpack`
+(env flags make the server skip client-only mods), so client and server always
+match versions. Server-only admin mods (LuckPerms, Profanity Guard, BlueMap) are
+pulled on top via `MODRINTH_PROJECTS` in the compose file.
+
+When you push a new pack or compose change to GitHub, update the droplet:
+
+```bash
+cd ~/minecraft
+git pull
+sudo chown -R 1000:1000 data          # see note below
+docker compose up -d --force-recreate
+docker logs -f minecraft-java
+```
+
+> **Always `chown` after a pull.** Git runs as root, so it rewrites tracked files
+> in `data/` (like `server.properties`) as root — but the container runs as
+> uid 1000 and can't write them, which throws `AccessDeniedException` and boot-loops.
+> The `chown` hands them back to the server's user.
+
+If a stale container from a failed run blocks recreate, remove it and bring it
+back up: `docker rm -f minecraft-java && docker compose up -d`.
+
+## 6. Backups on the droplet
 
 The PowerShell backup/playtime scripts are **Windows-only**. On Linux, back up
 with a cron job instead:
