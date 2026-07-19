@@ -1,8 +1,13 @@
 # Spark profiler temp files
 data/config/spark/tmp/
 
-# World saves (large binary data)
-data/world/
+# World saves (large binary data), except the Questify (mod id "questory",
+# lowercase - confirmed from its compiled class, LevelResource.ROOT.resolve("data").resolve("questory"))
+# quest definitions, which are plain JSON and need to travel with the repo like any other config.
+data/world/*
+!data/world/data/
+data/world/data/*
+!data/world/data/questory/
 data/world_nether/
 data/world_the_end/
 

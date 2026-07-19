@@ -1,0 +1,16 @@
+{
+  "name": "Welcome!",
+  "icon": "minecraft:written_book",
+  "category": "patchouli:basics",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "This server is just for you and your approved friends.$(br2)Be kind, keep chat friendly, and ask an adult if something feels wrong - an admin can always help."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Your playtime is tracked automatically and resets every day, so there's no rush - come back tomorrow for more!"
+    }
+  ]
+}

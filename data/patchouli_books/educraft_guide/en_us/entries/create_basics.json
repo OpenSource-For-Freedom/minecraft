@@ -1,0 +1,16 @@
+{
+  "name": "Create: Your First Machine",
+  "icon": "create:water_wheel",
+  "category": "patchouli:basics",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Create adds machines you build and power yourself.$(br2)Craft a $(bold)Water Wheel$() and place it next to flowing water to make your first source of rotational power."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Check the Quest book for a reward when you craft your first one!"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "quest_create_water_wheel",
+  "title": "Spin It Up!",
+  "description": "Craft a Create water wheel to start automating power.",
+  "icon": "create:water_wheel",
+  "hidden": false,
+  "x": 0,
+  "y": 0,
+  "dependencies": [],
+  "requirements": [
+    { "type": "item_craft", "id": "req_water_wheel", "item": "create:water_wheel", "count": 1 }
+  ],
+  "rewards": [
+    { "type": "item", "id": "rew_water_wheel_item", "item": "minecraft:copper_ingot", "count": 8 },
+    { "type": "xp", "id": "rew_water_wheel_xp", "amount": 50, "levels": false }
+  ]
+}
