@@ -75,12 +75,13 @@ services:
       REMOVE_OLD_MODS: "TRUE"
       INIT_MEMORY: "1G"
       MAX_MEMORY: "4G"
-      # PrismProtect's SQLite driver extracts a native lib into java.io.tmpdir
-      # (/tmp) to load it. /tmp here is a noexec tmpfs (see tmpfs: below), so
-      # that load silently fails, conn stays null, and the server crashes the
-      # instant anything logs to the DB (e.g. a mob dying). Point it at the
-      # data volume instead, which is writable and exec-capable.
-      JVM_OPTS: "-Dorg.sqlite.tmpdir=/data/tmp"
+      # PrismProtect's sqlite-jdbc can't locate its own bundled native lib
+      # under Forge's per-mod module classloader and throws
+      # NativeLibraryNotFoundException, leaving its DB connection null and
+      # crashing the server on the next DB write (e.g. a mob dying). The
+      # Dockerfile bakes the identical native lib into the image; point
+      # sqlite-jdbc straight at it, skipping its broken jar lookup.
+      JVM_OPTS: "-Dorg.sqlite.lib.path=/opt/sqlite-native -Dorg.sqlite.lib.name=libsqlitejdbc.so"
       DIFFICULTY: "easy"
       MODE: "survival"
       MOTD: "Safe Kids Server"

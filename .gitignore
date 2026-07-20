@@ -1,9 +1,6 @@
 # Spark profiler temp files
 data/config/spark/tmp/
 
-# Native lib extracted by sqlite-jdbc (see JVM_OPTS in docker-compose.yml)
-data/tmp/
-
 # World saves (large binary data)
 data/world/
 data/world_nether/
