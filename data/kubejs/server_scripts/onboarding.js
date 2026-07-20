@@ -28,7 +28,6 @@ PlayerEvents.tick(event => {
     player.tell(Text.gold('Welcome to the server, ' + player.username + '!'))
     player.tell(Text.white('- Only whitelisted players can join - keep it that way, just you and your approved friends.'))
     player.tell(Text.white('- Your daily playtime is tracked automatically and resets every day.'))
-    player.tell(Text.white('- Check the Quest book (Questify) for goals and rewards as you explore the mods.'))
     player.tell(Text.white('- Type /guide anytime to reopen this guide book.'))
 })
 
