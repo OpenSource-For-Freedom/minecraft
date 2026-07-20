@@ -1,0 +1,16 @@
+{
+  "name": "Screens for Your Computer",
+  "icon": "computercraft:computer_normal",
+  "category": "patchouli:robots",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A $(bold)Computer$() is like a turtle that can't move - great for running programs that control other things nearby."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Place $(bold)Monitor$() blocks next to it to build a bigger screen. Programs can print text, numbers, or even shapes onto it with $(bold)peripheral.wrap()$()."
+    }
+  ]
+}

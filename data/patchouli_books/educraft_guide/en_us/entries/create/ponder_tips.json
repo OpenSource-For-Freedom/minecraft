@@ -1,0 +1,16 @@
+{
+  "name": "Stuck on a Create Item?",
+  "icon": "minecraft:written_book",
+  "category": "patchouli:create",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Create has its own built-in tutorials called $(bold)Ponders$(). Hover over any Create item in your inventory or in JEI and look for a small $(bold)?$() icon."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Click it to watch a short animation showing exactly how that block works - way easier than reading!"
+    }
+  ]
+}

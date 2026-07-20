@@ -1,0 +1,16 @@
+{
+  "name": "Using This Book",
+  "icon": "minecraft:map",
+  "category": "patchouli:basics",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "This is your $(bold)EduCraft Guide$(). The list on the left is every category - click one to see its pages, or use the arrows to flip through."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Lost the book, or want to check something later? Just type $(bold)/guide$() in chat anytime to open it again."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Coins & Wallets",
+  "icon": "lightmanscurrency:wallet",
+  "category": "patchouli:trading",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Lightman's Currency adds real money to the server - $(bold)coins$() you earn from trading and bounties."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Craft a $(bold)Wallet$() and keep it in your inventory - it holds your coins safely so you don't drop them if you die."
+    }
+  ]
+}

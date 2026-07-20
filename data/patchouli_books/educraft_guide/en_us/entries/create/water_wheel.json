@@ -1,0 +1,16 @@
+{
+  "name": "Your First Machine",
+  "icon": "create:water_wheel",
+  "category": "patchouli:create",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Create adds machines you build and power yourself - nothing runs on its own.$(br2)Craft a $(bold)Water Wheel$() and place it next to flowing water to make your first source of rotational power."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The bigger the wheel and the more water touching it, the more power (called $(bold)Stress$() and $(bold)SU$()) it makes. That power needs to travel somewhere - see the next page!"
+    }
+  ]
+}

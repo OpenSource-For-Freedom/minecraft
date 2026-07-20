@@ -1,0 +1,16 @@
+{
+  "name": "Real Cooking",
+  "icon": "farmersdelight:cooking_pot",
+  "category": "patchouli:cooking",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Farmer's Delight adds proper cooking. Craft a $(bold)Knife$() to chop crops and meat on a $(bold)Cutting Board$() into ingredients."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Then drop several ingredients into a $(bold)Cooking Pot$() over a fire to make a full meal - way better than eating raw food!"
+    }
+  ]
+}

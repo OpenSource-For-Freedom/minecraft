@@ -1,0 +1,16 @@
+{
+  "name": "Growing Grapes",
+  "icon": "minecraft:glass_bottle",
+  "category": "patchouli:cooking",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Let's Do: Vinery lets you grow grapevines on trellises. Harvest the grapes once they're ripe."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Press them at a $(bold)Wine Press$() to make juice - another farm product you can trade for coins."
+    }
+  ]
+}

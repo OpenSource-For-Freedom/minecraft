@@ -1,0 +1,16 @@
+{
+  "name": "Fast Travel with Waystones",
+  "icon": "waystones:waystone",
+  "category": "patchouli:tools",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Tired of walking home? Craft a $(bold)Waystone$() and place it somewhere useful, like your base."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Right-click it once to activate it, then right-click $(italic)any$() Waystone anywhere to open a map and warp straight back - no more long walks."
+    }
+  ]
+}

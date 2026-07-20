@@ -1,0 +1,20 @@
+{
+  "name": "Your First Turtle",
+  "icon": "computercraft:turtle_normal",
+  "category": "patchouli:robots",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "CC: Tweaked adds computers and turtles you can program with real code (Lua).$(br2)Craft a $(bold)Turtle$() to get a little robot that can move, mine, and build for you."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Place it down and right-click to open it. Type $(bold)edit startup$() to write your first program, then $(bold)startup$() to run it."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Simple commands to try: $(bold)turtle.forward()$(), $(bold)turtle.dig()$(), $(bold)turtle.turnLeft()$() - line a few up and watch your turtle move!"
+    }
+  ]
+}

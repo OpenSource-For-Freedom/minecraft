@@ -1,0 +1,20 @@
+{
+  "name": "Finding Any Recipe",
+  "icon": "minecraft:knowledge_book",
+  "category": "patchouli:tools",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Don't know how to craft something? Hover your mouse over the item and press $(bold)R$() - a list of every recipe that makes it pops up instantly."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Press $(bold)U$() instead to see everything that item is $(italic)used$() in - handy for figuring out what to do with something you just picked up."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "You can also just open your inventory and search the item list on the right side - type a name and every matching item shows up."
+    }
+  ]
+}

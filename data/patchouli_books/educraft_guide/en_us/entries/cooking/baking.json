@@ -1,0 +1,16 @@
+{
+  "name": "Baking Bread & Pastries",
+  "icon": "minecraft:bread",
+  "category": "patchouli:cooking",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Let's Do: Bakery turns your wheat farm into bread, cakes, and pastries. Mix dough at a $(bold)Kneading Station$(), then bake it in an oven."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Baked goods sell for good coin at a trading machine - a tasty way to earn money."
+    }
+  ]
+}

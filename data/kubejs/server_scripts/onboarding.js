@@ -29,6 +29,7 @@ PlayerEvents.tick(event => {
     player.tell(Text.white('- Only whitelisted players can join - keep it that way, just you and your approved friends.'))
     player.tell(Text.white('- Your daily playtime is tracked automatically and resets every day.'))
     player.tell(Text.white('- Type /guide anytime to reopen this guide book.'))
+    player.tell(Text.gray("(If no book popped up just now, ask an admin to check your modpack is up to date.)"))
 })
 
 ServerEvents.commandRegistry(event => {
@@ -38,6 +39,7 @@ ServerEvents.commandRegistry(event => {
             const player = ctx.source.player
             if (!player) return 0
             ctx.source.server.runCommandSilent('open-patchouli-book ' + player.username + ' patchouli:educraft_guide')
+            player.tell(Text.gray("(If the book didn't pop up, ask an admin to check your modpack is up to date.)"))
             return 1
         })
     )

@@ -1,0 +1,16 @@
+{
+  "name": "Moving Power Around",
+  "icon": "create:shaft",
+  "category": "patchouli:create",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A $(bold)Shaft$() carries rotational power in a straight line - place one next to your Water Wheel to start moving its power somewhere useful."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A $(bold)Cogwheel$() does the same thing, but lets you turn a corner or change speed by using a big one next to a small one."
+    }
+  ]
+}

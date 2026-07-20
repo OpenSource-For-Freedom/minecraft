@@ -31,6 +31,16 @@ Only players you add can join. See `docker-compose.yml` for all safety settings.
 
 The mods live in `docker-compose.yml` (the `MODS` list) and download on their own. Players need the **same** mods to connect: give them `data/EduCraftClient.mrpack` and have them import it into the Modrinth App, Prism, or ATLauncher. It carries the exact jar versions the server runs, plus the two client-only map mods.
 
+## Updating the in-game guide book
+
+The `/guide` command and the book new players get on first join both come from `data/patchouli_books/educraft_guide/`. Patchouli's server can only tell a player's client *which* book to open by ID - the actual pages have to already exist on that player's own installed pack, bundled into `data/EduCraftClient.mrpack`'s `overrides/patchouli_books/` folder. If you edit the guide book but don't rebuild the `.mrpack`, `/guide` will silently do nothing for anyone still on the old pack - no error, no crash, it just won't open.
+
+After editing anything under `data/patchouli_books/`:
+
+1. On Windows, run `.\sync_guide_to_mrpack.ps1` - it rebuilds `data/EduCraftClient.mrpack` with the current book content.
+2. Bump the `(vN)` marker in `book.json`'s `"subtitle"` so players can tell whether their copy is current just by opening the book.
+3. Commit the updated `.mrpack`, and have players reimport/update it in their launcher.
+
 ## Who can play (the safety control)
 
 Only whitelisted usernames can join. Add/remove kids live without restarting:

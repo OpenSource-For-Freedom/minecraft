@@ -1,5 +1,6 @@
 {
   "name": "Getting Started",
-  "description": "The basics: staying safe and your first builds.",
-  "icon": "minecraft:grass_block"
+  "description": "The basics: staying safe and finding your way around this book.",
+  "icon": "minecraft:grass_block",
+  "sortnum": 0
 }

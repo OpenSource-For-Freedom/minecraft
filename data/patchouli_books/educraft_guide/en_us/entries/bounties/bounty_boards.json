@@ -1,0 +1,16 @@
+{
+  "name": "Village Bounty Boards",
+  "icon": "bountiful:bounty_board",
+  "category": "patchouli:bounties",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Look for a $(bold)Bounty Board$() in villages - it hands out jobs like \"bring 10 wheat\" or \"kill 5 zombies\"."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Accept a bounty, do the task, then hand in your items at the board for a free reward crate. New bounties appear over time, so check back often!"
+    }
+  ]
+}

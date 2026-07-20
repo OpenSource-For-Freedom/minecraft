@@ -1,0 +1,16 @@
+{
+  "name": "Notes: Coins Made Easy",
+  "icon": "minecraft:gold_ingot",
+  "category": "patchouli:trading",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Got a huge pile of coins clogging your inventory? Take them to a $(bold)Coin Mint$() to press them into a single $(bold)Note$() worth the same amount."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Notes stack neatly and spend just like coins - way easier to carry around."
+    }
+  ]
+}

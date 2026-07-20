@@ -1,0 +1,16 @@
+{
+  "name": "Building a Shop",
+  "icon": "lightmanscurrency:item_trader",
+  "category": "patchouli:trading",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Place a $(bold)Trading Machine$() to open your own shop. Right-click it while holding items to set what it buys or sells, and for how many coins."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Other players can then walk up and trade with your machine any time - even while you're offline!"
+    }
+  ]
+}

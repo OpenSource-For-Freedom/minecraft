@@ -1,0 +1,16 @@
+{
+  "name": "Advanced Peripherals",
+  "icon": "minecraft:observer",
+  "category": "patchouli:robots",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Advanced Peripherals adds special blocks your computer or turtle can talk to, so your programs can react to the world - not just move and mine."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Place one next to a computer, then use $(bold)peripheral.find(\"name\")$() in your code to start using it. Try a Player Detector to sense when someone walks by!"
+    }
+  ]
+}
