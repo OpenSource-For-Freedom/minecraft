@@ -75,6 +75,12 @@ services:
       REMOVE_OLD_MODS: "TRUE"
       INIT_MEMORY: "1G"
       MAX_MEMORY: "4G"
+      # PrismProtect's SQLite driver extracts a native lib into java.io.tmpdir
+      # (/tmp) to load it. /tmp here is a noexec tmpfs (see tmpfs: below), so
+      # that load silently fails, conn stays null, and the server crashes the
+      # instant anything logs to the DB (e.g. a mob dying). Point it at the
+      # data volume instead, which is writable and exec-capable.
+      JVM_OPTS: "-Dorg.sqlite.tmpdir=/data/tmp"
       DIFFICULTY: "easy"
       MODE: "survival"
       MOTD: "Safe Kids Server"
