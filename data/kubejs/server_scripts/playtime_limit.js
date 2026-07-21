@@ -6,7 +6,7 @@
 // restarts within the same day) and resets automatically when the local date
 // (server TZ) changes - no external scheduler needed.
 
-const LocalDate = Java.type('java.time.LocalDate')
+const LocalDate = Java.loadClass('java.time.LocalDate')
 const CONFIG = JsonIO.read('kubejs/config/playtime_limits.json') || { default_minutes: 120, exempt: [], players: {} }
 
 function limitSecondsFor(username) {
