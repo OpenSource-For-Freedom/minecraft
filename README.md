@@ -4,6 +4,8 @@
 A whitelist-only, hardened Minecraft server for kids and their approved friends.
 Only players you add can join. See `docker-compose.yml` for all safety settings.
 
+## ENTER HERE: [EduCraft](https://opensource-for-freedom.github.io/minecraft_website/)
+
 ## What you need
 
 - **Docker** with Compose. On Windows/Mac, install Docker Desktop; on Linux, install Docker plus the Compose v2 plugin (`docker compose`, or the standalone `docker-compose` binary).
