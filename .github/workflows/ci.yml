@@ -89,7 +89,35 @@ jobs:
           # and tests/ both contain the literal prefix as part of the check
           # itself, which made the naive version fail against its own source.
           check "no DO token committed"       '! git grep -IqE "dop_v1_[a-zA-Z0-9]{40,}" -- .'
+          # Supply chain: every mod must be an immutable version URL. Resolving
+          # a mod by project name means "latest at container start", so a restart
+          # could silently pull a compromised build with no commit, no review and
+          # no notification.
+          check "no name-resolved mods"       '! grep -qE "^[[:space:]]*MODRINTH_PROJECTS:" docker-compose.yml'
+          check "no floating modpack ref"     '! grep -qE "^[[:space:]]*MODRINTH_MODPACK:" docker-compose.yml'
           exit $fail
+
+      - name: Every mod URL is version-pinned and resolvable
+        shell: bash
+        run: |
+          # A pinned URL that 404s breaks the next container start, and the
+          # failure surfaces as a crash-loop on the live server rather than here.
+          urls=$(grep -oE 'https://cdn\.modrinth\.com/data/[^",]+' docker-compose.yml)
+          count=$(echo "$urls" | wc -l)
+          echo "checking $count pinned mod URLs"
+          bad=0
+          for u in $urls; do
+            case "$u" in
+              */versions/*) ;;
+              *) echo "NOT VERSION-PINNED: $u"; bad=$((bad+1)); continue ;;
+            esac
+            code=$(curl -s -o /dev/null -w '%{http_code}' -I --max-time 25 "$u" || echo 000)
+            case "$code" in
+              200|30*) ;;
+              *) echo "UNREACHABLE ($code): $u"; bad=$((bad+1)) ;;
+            esac
+          done
+          [ "$bad" -eq 0 ] && echo "all $count mod URLs pinned and reachable" || { echo "$bad problem(s)"; exit 1; }
 
       - name: Shell scripts parse
         run: |

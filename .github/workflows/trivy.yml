@@ -45,6 +45,11 @@ jobs:
           # exceeded", not on findings. This image carries a full JDK plus the
           # Forge runtime, and the default 5m analysis window is not enough.
           timeout: '20m'
+          # Report only what can actually be acted on. The base image is already
+          # pinned to upstream's newest build, so CVEs with no available fix are
+          # upstream's to ship and produce alerts with no remediation path. A
+          # dashboard full of un-actionable findings is one that stops being read.
+          ignore-unfixed: true
           # Vulnerability scanning only. Secret scanning walks every file in
           # every layer, which is the bulk of the time here and is already
           # covered for this repo by the committed-token check in ci.yml.
