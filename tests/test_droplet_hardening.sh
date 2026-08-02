@@ -67,8 +67,13 @@ echo
 echo "== segmentation: this box must hold no account-reaching secrets =="
 check "$([ -f /root/.config/doctl/config.yaml ] && echo no || echo yes)" \
       "no doctl config on the droplet" "a DO token here would expose the whole account"
-check "$(grep -rl 'dop_v1_' /root /home /etc /srv 2>/dev/null | head -1 | grep -q . && echo no || echo yes)" \
-      "no DigitalOcean token anywhere on disk" "$(grep -rl 'dop_v1_' /root /home /etc /srv 2>/dev/null | head -3 | tr '\n' ' ')"
+# Match the SHAPE of a real token, not the bare prefix. This repo's own test and
+# CI files contain the prefix as part of this very check, so the naive version
+# reported the checkout as a leaked credential every run. A security test that
+# cries wolf is a security test nobody reads.
+TOKEN_HITS=$(grep -rlE 'dop_v1_[a-zA-Z0-9]{40,}' /root /home /etc /srv 2>/dev/null | head -3 | tr '\n' ' ')
+check "$([ -z "$TOKEN_HITS" ] && echo yes || echo no)" \
+      "no DigitalOcean token anywhere on disk" "$TOKEN_HITS"
 check "$([ -f /root/.git-credentials ] && echo no || echo yes)" \
       "no stored git credentials" "would grant repo write access"
 check "$(git -C /root/minecraft remote -v 2>/dev/null | grep -q '@github.com' && echo no || echo yes)" \
