@@ -89,8 +89,11 @@ jobs:
           # `set -o pipefail` plus `... | head -c N` aborts the script when head
           # closes the pipe and the writer takes SIGPIPE. This silently left a
           # half-created sudo account on the server once already.
-          if grep -rnE '\|[[:space:]]*head -c' --include='*.sh' .; then
+          # Ignore comment lines: add_admin_user.sh documents the hazard in a
+          # comment explaining why it does NOT use that construct, and the naive
+          # version flagged that explanation as the defect it warns about.
+          if grep -rnE '\|[[:space:]]*head -c' --include='*.sh' . | grep -vE ':[[:space:]]*#'; then
             echo "FAIL: '| head -c' in a pipefail script can abort it mid-run"
             exit 1
           fi
-          echo "PASS: no '| head -c' pipelines"
+          echo "PASS: no '| head -c' pipelines outside comments"
