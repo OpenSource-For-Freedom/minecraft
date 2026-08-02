@@ -4,8 +4,10 @@ name: CI
 # holds NO secrets and has NO access to the server: the droplet pulls on its own
 # and refuses any commit whose checks did not pass (see gitops/deploy.sh).
 on:
+  # Every branch, not just main: the droplet's deploy gate refuses any commit
+  # with no completed checks, so a branch we want to test-deploy must produce
+  # check-runs of its own.
   push:
-    branches: [main]
   pull_request:
     branches: [main]
 
