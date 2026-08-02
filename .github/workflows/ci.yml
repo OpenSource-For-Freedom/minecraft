@@ -18,6 +18,15 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
+      # Runner hardening before anything is fetched or built. This job pulls mod
+      # jars from the Modrinth CDN, a base image from Docker Hub and a native lib
+      # from Maven Central, so default-deny egress and file-integrity checking are
+      # doing real supply-chain work here rather than being decorative.
+      # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
+      # exactly the class of attack this step exists to contain.
+      - name: Legion harden runner
+        uses: OpenSource-For-Freedom/Legion_runner@d491441dd1e6e3a5e336ef05b03d7e38783a7162 # v1.0.40
+
       - uses: actions/checkout@v4
 
       - name: Compose file is valid
