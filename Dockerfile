@@ -24,6 +24,9 @@ ENV ENABLE_ROLLING_LOGS="true" \
 # that broken lookup entirely.
 # The download is checksum-pinned: a tampered or swapped Maven artifact fails
 # the build instead of shipping unverified native code into the image.
+# Only curl and unzip, --no-install-recommends so apt does not drag in a tail of
+# suggested packages nobody reviewed. These come from Ubuntu's signed repos and
+# are removed from the final layer below, so they exist only during the build.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip \
     && rm -rf /var/lib/apt/lists/* \
