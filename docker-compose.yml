@@ -95,7 +95,12 @@ services:
       JVM_OPTS: "-Dorg.sqlite.lib.path=/opt/sqlite-native -Dorg.sqlite.lib.name=libsqlitejdbc.so"
       DIFFICULTY: "easy"
       MODE: "survival"
-      MOTD: "Safe Kids Server"
+      # The MOTD is broadcast to anyone who pings the port, including every
+      # internet-wide scanner that indexes Minecraft servers. "Safe Kids Server"
+      # advertised to strangers that children play here, which is exactly the
+      # audience you do not want to attract. EduCraft says nothing about who is
+      # on it. The safety controls are the whitelist and online-mode, not the label.
+      MOTD: "EduCraft §7Education and Adventure"
 
       # --- KID-SAFETY: only approved players can join ---
       ENABLE_WHITELIST: "TRUE"
