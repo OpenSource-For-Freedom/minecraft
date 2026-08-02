@@ -41,7 +41,22 @@ jobs:
         run: docker compose config --quiet
 
       - name: Hardened image builds (digest pin + checksum gate must hold)
-        run: docker compose build
+        # Docker Hub's auth endpoint intermittently times out from GitHub
+        # runners, which failed this build once with "failed to fetch oauth
+        # token: i/o timeout" while the identical commit passed on a rerun.
+        # A registry hiccup must not read as a hardening regression, and it
+        # must not block a deploy: the gate requires every check green.
+        run: |
+          for attempt in 1 2 3; do
+            if docker compose build; then
+              echo "build OK on attempt $attempt"
+              exit 0
+            fi
+            echo "attempt $attempt failed; retrying in $((attempt * 20))s"
+            sleep $((attempt * 20))
+          done
+          echo "build failed after 3 attempts"
+          exit 1
 
       - name: Image does not run as root
         run: |
