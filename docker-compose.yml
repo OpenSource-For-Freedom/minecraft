@@ -38,8 +38,9 @@ services:
 
     ports:
       - "25565:25565"            # Minecraft (public)
-      - "8100:8100"              # BlueMap web map — open http://SERVER_IP:8100 in a browser
-                                 # (also open port 8100 in your host/cloud firewall)
+      - "127.0.0.1:8100:8100"    # BlueMap web map — localhost only; view it through an
+                                 # SSH tunnel (ssh -L 8100:localhost:8100 root@SERVER_IP),
+                                 # never open 8100 in the cloud firewall
     environment:
       EULA: "TRUE"
       TYPE: "FORGE"

@@ -1,3 +1,33 @@
+# Secrets - never commit (public repo)
+.env
+.env.*
+
+# Runtime state the SERVER rewrites on every boot. These must not be tracked:
+# while they are, `git pull --ff-only` on the droplet aborts every single time
+# because the worktree is permanently dirty, which blocks automated deploys.
+# docker-compose.yml env vars are the source of truth for settings and rosters.
+data/server.properties
+data/whitelist.json
+data/ops.json
+data/banned-players.json
+data/banned-ips.json
+data/usercache.json
+data/bluemap/
+data/config/
+data/.forge-manifest.json
+data/.run-forge.env
+data/kubejs/*/generated/
+data/crash-reports/
+data/local/
+data/log4j2.xml
+data/rhino.local.properties
+data/run.bat
+data/run.sh
+data/kubejs/README.txt
+data/kubejs/config/common.properties
+data/kubejs/server_scripts/example.js
+data/kubejs/startup_scripts/
+
 # Spark profiler temp files
 data/config/spark/tmp/
 

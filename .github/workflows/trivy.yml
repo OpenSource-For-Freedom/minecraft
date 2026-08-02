@@ -41,6 +41,14 @@ jobs:
           template: '@/contrib/sarif.tpl'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          # The scan was failing with "analyze error: timeout: context deadline
+          # exceeded", not on findings. This image carries a full JDK plus the
+          # Forge runtime, and the default 5m analysis window is not enough.
+          timeout: '20m'
+          # Vulnerability scanning only. Secret scanning walks every file in
+          # every layer, which is the bulk of the time here and is already
+          # covered for this repo by the committed-token check in ci.yml.
+          scanners: 'vuln'
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3

@@ -1,0 +1,15 @@
+[Unit]
+Description=Check GitHub for Minecraft server updates
+
+[Timer]
+# Five minutes is the deploy latency you accept in exchange for needing no
+# inbound port and no credential on the droplet. A no-op tick costs one
+# git fetch against a public repo.
+OnBootSec=3min
+OnUnitActiveSec=5min
+# Do not fire every host at the same second (and add a little jitter overall).
+RandomizedDelaySec=30
+Unit=minecraft-deploy.service
+
+[Install]
+WantedBy=timers.target

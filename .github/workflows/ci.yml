@@ -1,0 +1,114 @@
+name: CI
+
+# Validates every change before the droplet is allowed to run it. This workflow
+# holds NO secrets and has NO access to the server: the droplet pulls on its own
+# and refuses any commit whose checks did not pass (see gitops/deploy.sh).
+on:
+  # Every branch, not just main: the droplet's deploy gate refuses any commit
+  # with no completed checks, so a branch we want to test-deploy must produce
+  # check-runs of its own.
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      # Runner hardening before anything is fetched or built. This job pulls mod
+      # jars from the Modrinth CDN, a base image from Docker Hub and a native lib
+      # from Maven Central, so default-deny egress and file-integrity checking are
+      # doing real supply-chain work here rather than being decorative.
+      # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
+      # exactly the class of attack this step exists to contain.
+      - name: Legion harden runner
+        uses: Wraith-security/Legion_runner@c87551e7020204681fe8e72da7b62264a6a11aaa # v1.0.51
+        with:
+          # Audit first, deliberately. Block mode with the wrong allowlist fails
+          # the build, and this job legitimately reaches cdn.modrinth.com,
+          # repo1.maven.org, ghcr/docker registries and api.github.com. Run in
+          # audit for a few builds, read the connection table in the job summary,
+          # then switch to block with the observed set.
+          egress-policy: audit
+          allowed-presets: docker,maven
+
+      - uses: actions/checkout@v4
+
+      - name: Compose file is valid
+        run: docker compose config --quiet
+
+      - name: Hardened image builds (digest pin + checksum gate must hold)
+        # Docker Hub's auth endpoint intermittently times out from GitHub
+        # runners, which failed this build once with "failed to fetch oauth
+        # token: i/o timeout" while the identical commit passed on a rerun.
+        # A registry hiccup must not read as a hardening regression, and it
+        # must not block a deploy: the gate requires every check green.
+        run: |
+          for attempt in 1 2 3; do
+            if docker compose build; then
+              echo "build OK on attempt $attempt"
+              exit 0
+            fi
+            echo "attempt $attempt failed; retrying in $((attempt * 20))s"
+            sleep $((attempt * 20))
+          done
+          echo "build failed after 3 attempts"
+          exit 1
+
+      - name: Image does not run as root
+        run: |
+          user=$(docker image inspect minecraft-java:secure --format '{{.Config.User}}')
+          echo "image user: ${user:-<root>}"
+          case "$user" in
+            1000*) echo "OK" ;;
+            *) echo "FAIL: image must run as uid 1000"; exit 1 ;;
+          esac
+
+      - name: Container hardening assertions
+        shell: bash
+        run: |
+          fail=0
+          check() { if eval "$2"; then echo "PASS  $1"; else echo "FAIL  $1"; fail=$((fail+1)); fi }
+
+          check "no privileged flag"          '! grep -qE "^[[:space:]]*privileged:[[:space:]]*true" docker-compose.yml'
+          check "docker socket not mounted"   '! grep -q "docker.sock" docker-compose.yml'
+          # grep -P is unavailable or locale-dependent on some runners, so read
+          # the line after cap_drop: instead of matching across a newline.
+          check "capabilities dropped"        'grep -A1 "cap_drop:" docker-compose.yml | grep -qE "^[[:space:]]*-[[:space:]]*ALL"'
+          check "read-only rootfs"            'grep -qE "^[[:space:]]*read_only:[[:space:]]*true" docker-compose.yml'
+          check "no-new-privileges"           'grep -q "no-new-privileges:true" docker-compose.yml'
+          check "pids capped"                 'grep -qE "^[[:space:]]*pids_limit:" docker-compose.yml'
+          check "RCON not published"          '! grep -qE "^[[:space:]]*-[[:space:]]*\"?[0-9.:]*25575" docker-compose.yml'
+          check "BlueMap bound to localhost"  'grep -q "127.0.0.1:8100:8100" docker-compose.yml'
+          check "online-mode enforced"        'grep -q "ONLINE_MODE: \"TRUE\"" docker-compose.yml'
+          check "whitelist enforced"          'grep -q "ENFORCE_WHITELIST: \"TRUE\"" docker-compose.yml'
+          # Match the SHAPE of a real token, not the bare prefix: this very file
+          # and tests/ both contain the literal prefix as part of the check
+          # itself, which made the naive version fail against its own source.
+          check "no DO token committed"       '! git grep -IqE "dop_v1_[a-zA-Z0-9]{40,}" -- .'
+          exit $fail
+
+      - name: Shell scripts parse
+        run: |
+          for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
+                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh; do
+            [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
+          done
+
+      - name: No SIGPIPE-under-pipefail hazards in scripts
+        shell: bash
+        run: |
+          # `set -o pipefail` plus `... | head -c N` aborts the script when head
+          # closes the pipe and the writer takes SIGPIPE. This silently left a
+          # half-created sudo account on the server once already.
+          # Ignore comment lines: add_admin_user.sh documents the hazard in a
+          # comment explaining why it does NOT use that construct, and the naive
+          # version flagged that explanation as the defect it warns about.
+          if grep -rnE '\|[[:space:]]*head -c' --include='*.sh' . | grep -vE ':[[:space:]]*#'; then
+            echo "FAIL: '| head -c' in a pipefail script can abort it mid-run"
+            exit 1
+          fi
+          echo "PASS: no '| head -c' pipelines outside comments"
