@@ -1,4 +1,5 @@
-# Safe Kids Minecraft Server (Forge 1.20.1)
+# Minecraft Server (Forge 1.20.1)
+[![trivy](https://github.com/OpenSource-For-Freedom/minecraft/actions/workflows/trivy.yml/badge.svg)](https://github.com/OpenSource-For-Freedom/minecraft/actions/workflows/trivy.yml)
 
 A whitelist-only, hardened Minecraft server for kids and their approved friends.
 Only players you add can join. See `docker-compose.yml` for all safety settings.
