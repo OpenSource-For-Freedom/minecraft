@@ -18,6 +18,19 @@ HEALTH_TIMEOUT=300   # seconds to wait for the server to answer after a rebuild
 log() { echo "$(date -Is) $*"; }
 rcon() { docker exec -i "$CONTAINER" rcon-cli "$@" 2>/dev/null || true; }
 
+# Compose v2 ("docker compose") and the standalone v1 binary ("docker-compose")
+# are both found in the wild on DigitalOcean images, and a droplet with only v1
+# fails here with a confusing "unknown shorthand flag: 'd'". Detect rather than
+# assume, and fail loudly if neither exists instead of part-way through a deploy.
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE="docker-compose"
+else
+    echo "ABORT: neither 'docker compose' nor 'docker-compose' is available" >&2
+    exit 1
+fi
+
 cd "$REPO_DIR"
 
 # A tracked file modified on disk means someone edited on the box, or runtime
@@ -88,7 +101,7 @@ git pull --ff-only origin "$BRANCH"
 # AccessDeniedException if it cannot write its own data files.
 chown -R 1000:1000 data
 
-docker compose up -d --build
+$COMPOSE up -d --build
 
 # Health gate: a container that is "running" can still be crash-looping, so ask
 # the server itself whether it answers the Minecraft protocol.
@@ -113,6 +126,6 @@ fi
 log "HEALTH CHECK FAILED at ${NEW_SHA:0:8} - rolling back to ${OLD_SHA:0:8}"
 git reset --hard "$OLD_SHA"
 chown -R 1000:1000 data
-docker compose up -d --build
+$COMPOSE up -d --build
 log "rolled back; investigate with: docker logs --tail 100 $CONTAINER"
 exit 1
