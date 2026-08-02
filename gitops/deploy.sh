@@ -18,6 +18,43 @@ HEALTH_TIMEOUT=300   # seconds to wait for the server to answer after a rebuild
 log() { echo "$(date -Is) $*"; }
 rcon() { docker exec -i "$CONTAINER" rcon-cli "$@" 2>/dev/null || true; }
 
+# --- GitHub Deployments reporting (optional) -------------------------------
+# Records each deploy in the repo's Deployments UI so a push can be traced to
+# the moment it actually reached the droplet. Entirely optional: with no token
+# the deploy behaves exactly as before, because this is reporting only and must
+# never be able to fail a deploy.
+#
+# The token lives in /etc/minecraft-deploy.env (root-only, mode 600, NOT in
+# git), loaded by the systemd unit's EnvironmentFile. Use a FINE-GRAINED token
+# scoped to Deployments:write on this repository alone. A classic repo-scoped
+# token here would mean droplet compromise equals write access to every repo
+# the account owns, which is the one property this deploy design otherwise
+# preserves: the droplet holds no credentials for anything.
+GH_API="https://api.github.com/repos/${GH_REPO:-OpenSource-For-Freedom/minecraft}"
+DEPLOYMENT_ID=""
+
+gh_deployment_create() {
+    [ -n "${GH_DEPLOY_TOKEN:-}" ] || return 0
+    DEPLOYMENT_ID=$(curl -fsSL -X POST "$GH_API/deployments" \
+        -H "Authorization: Bearer $GH_DEPLOY_TOKEN" \
+        -H "Accept: application/vnd.github+json" \
+        -d "{\"ref\":\"$1\",\"environment\":\"production\",\"description\":\"droplet 159.65.25.218\",\"auto_merge\":false,\"required_contexts\":[]}" \
+        2>/dev/null | grep -m1 -o '"id"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$') || true
+    [ -n "$DEPLOYMENT_ID" ] && log "github deployment #$DEPLOYMENT_ID opened"
+    return 0
+}
+
+gh_deployment_status() {
+    [ -n "${GH_DEPLOY_TOKEN:-}" ] || return 0
+    [ -n "$DEPLOYMENT_ID" ] || return 0
+    curl -fsSL -X POST "$GH_API/deployments/$DEPLOYMENT_ID/statuses" \
+        -H "Authorization: Bearer $GH_DEPLOY_TOKEN" \
+        -H "Accept: application/vnd.github+json" \
+        -d "{\"state\":\"$1\",\"description\":\"$2\"}" >/dev/null 2>&1 || true
+    log "github deployment #$DEPLOYMENT_ID -> $1"
+    return 0
+}
+
 # Compose v2 ("docker compose") and the standalone v1 binary ("docker-compose")
 # are both found in the wild on DigitalOcean images, and a droplet with only v1
 # fails here with a confusing "unknown shorthand flag: 'd'". Detect rather than
@@ -78,6 +115,8 @@ if [ "${REQUIRE_CI:-true}" = "true" ]; then
     log "CI green (${succeeded}/${total}) for ${NEW_SHA:0:8}"
 fi
 
+gh_deployment_create "$NEW_SHA"
+
 # Back up before touching a running world. Restores are the real safety net;
 # PrismProtect only rolls back blocks, not a corrupted save.
 mkdir -p "$BACKUP_DIR"
@@ -118,12 +157,14 @@ done
 
 if [ "$healthy" = true ]; then
     log "DEPLOY OK at ${NEW_SHA:0:8}"
+    gh_deployment_status success "server answering at ${NEW_SHA:0:8}"
     rcon say "Update complete. Welcome back."
     exit 0
 fi
 
 # Unattended deploys must not leave the server down until someone notices.
 log "HEALTH CHECK FAILED at ${NEW_SHA:0:8} - rolling back to ${OLD_SHA:0:8}"
+gh_deployment_status failure "server did not answer; rolled back to ${OLD_SHA:0:8}"
 git reset --hard "$OLD_SHA"
 chown -R 1000:1000 data
 $COMPOSE up -d --build

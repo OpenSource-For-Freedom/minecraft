@@ -5,6 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# Optional: supplies GH_DEPLOY_TOKEN for GitHub Deployments reporting. The
+# leading dash makes it non-fatal when absent, so deploys work with no token.
+EnvironmentFile=-/etc/minecraft-deploy.env
 ExecStart=/root/minecraft/gitops/deploy.sh
 # One deploy at a time; a slow rebuild must not overlap the next timer tick.
 TimeoutStartSec=1800
