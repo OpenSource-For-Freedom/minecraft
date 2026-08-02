@@ -1,0 +1,72 @@
+name: CI
+
+# Validates every change before the droplet is allowed to run it. This workflow
+# holds NO secrets and has NO access to the server: the droplet pulls on its own
+# and refuses any commit whose checks did not pass (see gitops/deploy.sh).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose file is valid
+        run: docker compose config --quiet
+
+      - name: Hardened image builds (digest pin + checksum gate must hold)
+        run: docker compose build
+
+      - name: Image does not run as root
+        run: |
+          user=$(docker image inspect minecraft-java:secure --format '{{.Config.User}}')
+          echo "image user: ${user:-<root>}"
+          case "$user" in
+            1000*) echo "OK" ;;
+            *) echo "FAIL: image must run as uid 1000"; exit 1 ;;
+          esac
+
+      - name: Container hardening assertions
+        shell: bash
+        run: |
+          fail=0
+          check() { if eval "$2"; then echo "PASS  $1"; else echo "FAIL  $1"; fail=$((fail+1)); fi }
+
+          check "no privileged flag"          '! grep -qE "^[[:space:]]*privileged:[[:space:]]*true" docker-compose.yml'
+          check "docker socket not mounted"   '! grep -q "docker.sock" docker-compose.yml'
+          check "capabilities dropped"        'grep -Pzoq "cap_drop:\s*\n\s*- ALL" docker-compose.yml'
+          check "read-only rootfs"            'grep -qE "^[[:space:]]*read_only:[[:space:]]*true" docker-compose.yml'
+          check "no-new-privileges"           'grep -q "no-new-privileges:true" docker-compose.yml'
+          check "pids capped"                 'grep -qE "^[[:space:]]*pids_limit:" docker-compose.yml'
+          check "RCON not published"          '! grep -qE "^[[:space:]]*-[[:space:]]*\"?[0-9.:]*25575" docker-compose.yml'
+          check "BlueMap bound to localhost"  'grep -q "127.0.0.1:8100:8100" docker-compose.yml'
+          check "online-mode enforced"        'grep -q "ONLINE_MODE: \"TRUE\"" docker-compose.yml'
+          check "whitelist enforced"          'grep -q "ENFORCE_WHITELIST: \"TRUE\"" docker-compose.yml'
+          check "no DO token committed"       '! grep -rq "dop_v1_" --include="*.yml" --include="*.sh" --include="*.md" .'
+          exit $fail
+
+      - name: Shell scripts parse
+        run: |
+          for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
+                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh; do
+            [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
+          done
+
+      - name: No SIGPIPE-under-pipefail hazards in scripts
+        shell: bash
+        run: |
+          # `set -o pipefail` plus `... | head -c N` aborts the script when head
+          # closes the pipe and the writer takes SIGPIPE. This silently left a
+          # half-created sudo account on the server once already.
+          if grep -rnE '\|[[:space:]]*head -c' --include='*.sh' .; then
+            echo "FAIL: '| head -c' in a pipefail script can abort it mid-run"
+            exit 1
+          fi
+          echo "PASS: no '| head -c' pipelines"

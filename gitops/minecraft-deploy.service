@@ -1,0 +1,18 @@
+[Unit]
+Description=Deploy the Minecraft server from GitHub if main moved
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/minecraft/gitops/deploy.sh
+# One deploy at a time; a slow rebuild must not overlap the next timer tick.
+TimeoutStartSec=1800
+
+# The script needs root (docker, chown), but nothing beyond this repo and docker.
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+NoNewPrivileges=true
