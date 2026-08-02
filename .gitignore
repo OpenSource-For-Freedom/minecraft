@@ -17,6 +17,16 @@ data/config/
 data/.forge-manifest.json
 data/.run-forge.env
 data/kubejs/*/generated/
+data/crash-reports/
+data/local/
+data/log4j2.xml
+data/rhino.local.properties
+data/run.bat
+data/run.sh
+data/kubejs/README.txt
+data/kubejs/config/common.properties
+data/kubejs/server_scripts/example.js
+data/kubejs/startup_scripts/
 
 # Spark profiler temp files
 data/config/spark/tmp/
