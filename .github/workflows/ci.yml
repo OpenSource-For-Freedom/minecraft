@@ -25,7 +25,15 @@ jobs:
       # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
       # exactly the class of attack this step exists to contain.
       - name: Legion harden runner
-        uses: OpenSource-For-Freedom/Legion_runner@d491441dd1e6e3a5e336ef05b03d7e38783a7162 # v1.0.40
+        uses: Wraith-security/Legion_runner@c87551e7020204681fe8e72da7b62264a6a11aaa # v1.0.51
+        with:
+          # Audit first, deliberately. Block mode with the wrong allowlist fails
+          # the build, and this job legitimately reaches cdn.modrinth.com,
+          # repo1.maven.org, ghcr/docker registries and api.github.com. Run in
+          # audit for a few builds, read the connection table in the job summary,
+          # then switch to block with the observed set.
+          egress-policy: audit
+          allowed-presets: docker,maven
 
       - uses: actions/checkout@v4
 
