@@ -60,7 +60,9 @@ jobs:
 
           check "no privileged flag"          '! grep -qE "^[[:space:]]*privileged:[[:space:]]*true" docker-compose.yml'
           check "docker socket not mounted"   '! grep -q "docker.sock" docker-compose.yml'
-          check "capabilities dropped"        'grep -Pzoq "cap_drop:\s*\n\s*- ALL" docker-compose.yml'
+          # grep -P is unavailable or locale-dependent on some runners, so read
+          # the line after cap_drop: instead of matching across a newline.
+          check "capabilities dropped"        'grep -A1 "cap_drop:" docker-compose.yml | grep -qE "^[[:space:]]*-[[:space:]]*ALL"'
           check "read-only rootfs"            'grep -qE "^[[:space:]]*read_only:[[:space:]]*true" docker-compose.yml'
           check "no-new-privileges"           'grep -q "no-new-privileges:true" docker-compose.yml'
           check "pids capped"                 'grep -qE "^[[:space:]]*pids_limit:" docker-compose.yml'
@@ -68,7 +70,10 @@ jobs:
           check "BlueMap bound to localhost"  'grep -q "127.0.0.1:8100:8100" docker-compose.yml'
           check "online-mode enforced"        'grep -q "ONLINE_MODE: \"TRUE\"" docker-compose.yml'
           check "whitelist enforced"          'grep -q "ENFORCE_WHITELIST: \"TRUE\"" docker-compose.yml'
-          check "no DO token committed"       '! grep -rq "dop_v1_" --include="*.yml" --include="*.sh" --include="*.md" .'
+          # Match the SHAPE of a real token, not the bare prefix: this very file
+          # and tests/ both contain the literal prefix as part of the check
+          # itself, which made the naive version fail against its own source.
+          check "no DO token committed"       '! git grep -IqE "dop_v1_[a-zA-Z0-9]{40,}" -- .'
           exit $fail
 
       - name: Shell scripts parse
