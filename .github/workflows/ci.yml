@@ -25,7 +25,7 @@ jobs:
       # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
       # exactly the class of attack this step exists to contain.
       - name: Legion harden runner
-        uses: Wraith-security/Legion_runner@c87551e7020204681fe8e72da7b62264a6a11aaa # v1.0.51
+        uses: Wraith-security/legion_runner@0f792305e304ccb691646fb3e34bf2327d46a3a0 # v1.0.56
         with:
           # Audit first, deliberately. Block mode with the wrong allowlist fails
           # the build, and this job legitimately reaches cdn.modrinth.com,
