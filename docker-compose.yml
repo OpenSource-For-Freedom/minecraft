@@ -23,7 +23,15 @@ services:
     # Compose flagging a phantom pids conflict.
     mem_limit: 6g
     mem_reservation: 4g
-    cpus: 2.0
+    # Raised from 2.0 when the droplet went from 2 to 4 vCPUs (2026-08-07).
+    # This cap, not the droplet size, is what actually limits the server: the
+    # container sat pegged at ~197% of 2 cores during worldgen, and leaving
+    # this at 2.0 would have made the resize buy exactly nothing.
+    # 3.5, not 4.0: the host still needs cycles for sshd/tailscaled, auditd,
+    # the deploy timer and Docker itself. Handing the whole box to the JVM
+    # makes the admin plane unresponsive precisely when the server is busy,
+    # which is when you most need to get in.
+    cpus: 3.5
     pids_limit: 512
     ulimits:
       nofile:
@@ -52,7 +60,7 @@ services:
       # image, so we list the jars directly. To refresh after changing the pack:
       # read each file's downloads[0] from the pack's modrinth.index.json where
       # env.server != "unsupported", and join with commas.
-      MODS: "https://cdn.modrinth.com/data/LNytGWDc/versions/8amzvn9x/create-1.20.1-6.0.8.jar,https://cdn.modrinth.com/data/gu7yAYhd/versions/rx9gr1rz/cc-tweaked-1.20.1-forge-1.120.0.jar,https://cdn.modrinth.com/data/fXt291FO/versions/yxrimuPr/cccbridge-mc1.20.1-v1.7.1-forge.jar,https://cdn.modrinth.com/data/SOw6jD6x/versions/mIP0ApJY/AdvancedPeripherals-1.20.1-0.7.48r.jar,https://cdn.modrinth.com/data/R2OftAxM/versions/CsjS7EkP/FarmersDelight-1.20.1-1.3.2.jar,https://cdn.modrinth.com/data/WFwYiVoG/versions/Jo8EwiDR/letsdo-bakery-forge-1.1.15.jar,https://cdn.modrinth.com/data/1DWmBJVA/versions/2I4cH49O/letsdo-vinery-forge-1.4.41.jar,https://cdn.modrinth.com/data/wvMc8AJt/versions/eAALa47O/lightmanscurrency-1.20.1-2.3.0.5.jar,https://cdn.modrinth.com/data/LOpKHB2A/versions/sKoHLGbK/waystones-forge-1.20.1-14.1.20.jar,https://cdn.modrinth.com/data/SaCpeal4/versions/gBDsc134/comforts-forge-6.4.0%2B1.20.1.jar,https://cdn.modrinth.com/data/nU0bVIaL/versions/94dtOLgZ/Patchouli-1.20.1-85-FORGE.jar,https://cdn.modrinth.com/data/u6dRKJwZ/versions/vnxhddW4/jei-1.20.1-forge-15.20.0.133.jar,https://cdn.modrinth.com/data/lhGA9TYQ/versions/1MKTLiiG/architectury-9.2.14-forge.jar,https://cdn.modrinth.com/data/4XJZeZbM/versions/uEaTMht9/letsdo-API-forge-1.2.15-forge.jar,https://cdn.modrinth.com/data/MBAkmtvl/versions/8rz04Kha/balm-forge-1.20.1-7.3.38-all.jar,https://cdn.modrinth.com/data/umyGl7zF/versions/g5igndAv/kubejs-forge-2001.6.5-build.16.jar,https://cdn.modrinth.com/data/sk9knFPE/versions/maCpsT70/rhino-forge-2001.2.3-build.6.jar,https://cdn.modrinth.com/data/ordsPcFz/versions/Zsh14XeQ/kotlinforforge-4.12.0-all.jar,https://cdn.modrinth.com/data/zfbCkvdZ/versions/er56DwLJ/Kambrik-6.1.1%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/BpwWFOVM/versions/EM7Su3PD/Bountiful-6.0.4%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/Vebnzrzj/versions/AudvOzqV/LuckPerms-Forge-5.4.102.jar,https://cdn.modrinth.com/data/w55UhnTf/versions/lkx1EGgV/Profanity%20Guard-forge-1.20.1-1.1.0.jar,https://cdn.modrinth.com/data/swbUV1cr/versions/kC7iYqja/bluemap-5.12-mc1.20-6-forge.jar,https://cdn.modrinth.com/data/FIpr9lji/versions/LcBh53eF/prismprotect-forge-1.3.2-mc1.20.1-1.20.4.jar,https://cdn.modrinth.com/data/rsBa8ErW/versions/l7p4hUk0/playtimestatistics-1.20.x-zh-CN-1.0.1.jar,https://cdn.modrinth.com/data/8oi3bsk5/versions/WeYhEb5d/Terralith_1.20.x_v2.5.4.jar"
+      MODS: "https://cdn.modrinth.com/data/LNytGWDc/versions/8amzvn9x/create-1.20.1-6.0.8.jar,https://cdn.modrinth.com/data/gu7yAYhd/versions/rx9gr1rz/cc-tweaked-1.20.1-forge-1.120.0.jar,https://cdn.modrinth.com/data/fXt291FO/versions/yxrimuPr/cccbridge-mc1.20.1-v1.7.1-forge.jar,https://cdn.modrinth.com/data/SOw6jD6x/versions/mIP0ApJY/AdvancedPeripherals-1.20.1-0.7.48r.jar,https://cdn.modrinth.com/data/R2OftAxM/versions/CsjS7EkP/FarmersDelight-1.20.1-1.3.2.jar,https://cdn.modrinth.com/data/WFwYiVoG/versions/Jo8EwiDR/letsdo-bakery-forge-1.1.15.jar,https://cdn.modrinth.com/data/1DWmBJVA/versions/2I4cH49O/letsdo-vinery-forge-1.4.41.jar,https://cdn.modrinth.com/data/wvMc8AJt/versions/eAALa47O/lightmanscurrency-1.20.1-2.3.0.5.jar,https://cdn.modrinth.com/data/LOpKHB2A/versions/sKoHLGbK/waystones-forge-1.20.1-14.1.20.jar,https://cdn.modrinth.com/data/SaCpeal4/versions/gBDsc134/comforts-forge-6.4.0%2B1.20.1.jar,https://cdn.modrinth.com/data/nU0bVIaL/versions/94dtOLgZ/Patchouli-1.20.1-85-FORGE.jar,https://cdn.modrinth.com/data/u6dRKJwZ/versions/vnxhddW4/jei-1.20.1-forge-15.20.0.133.jar,https://cdn.modrinth.com/data/lhGA9TYQ/versions/1MKTLiiG/architectury-9.2.14-forge.jar,https://cdn.modrinth.com/data/4XJZeZbM/versions/uEaTMht9/letsdo-API-forge-1.2.15-forge.jar,https://cdn.modrinth.com/data/MBAkmtvl/versions/8rz04Kha/balm-forge-1.20.1-7.3.38-all.jar,https://cdn.modrinth.com/data/umyGl7zF/versions/g5igndAv/kubejs-forge-2001.6.5-build.16.jar,https://cdn.modrinth.com/data/sk9knFPE/versions/maCpsT70/rhino-forge-2001.2.3-build.6.jar,https://cdn.modrinth.com/data/ordsPcFz/versions/Zsh14XeQ/kotlinforforge-4.12.0-all.jar,https://cdn.modrinth.com/data/zfbCkvdZ/versions/er56DwLJ/Kambrik-6.1.1%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/BpwWFOVM/versions/EM7Su3PD/Bountiful-6.0.4%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/Vebnzrzj/versions/AudvOzqV/LuckPerms-Forge-5.4.102.jar,https://cdn.modrinth.com/data/w55UhnTf/versions/lkx1EGgV/Profanity%20Guard-forge-1.20.1-1.1.0.jar,https://cdn.modrinth.com/data/swbUV1cr/versions/kC7iYqja/bluemap-5.12-mc1.20-6-forge.jar,https://cdn.modrinth.com/data/FIpr9lji/versions/LcBh53eF/prismprotect-forge-1.3.2-mc1.20.1-1.20.4.jar,https://cdn.modrinth.com/data/rsBa8ErW/versions/l7p4hUk0/playtimestatistics-1.20.x-zh-CN-1.0.1.jar,https://cdn.modrinth.com/data/8oi3bsk5/versions/WeYhEb5d/Terralith_1.20.x_v2.5.4.jar,https://cdn.modrinth.com/data/fALzjamp/versions/4FTDk9wv/Chunky-1.3.146.jar"
       # Questify (quests) was removed: it and PrismProtect both shade their own
       # copy of org.sqlite as plain classes under the same package name, which
       # Forge's module system refuses to load together ("Modules questory and
@@ -79,6 +87,21 @@ services:
       # NOTE: worldgen only affects chunks generated AFTER this deploys. The
       # existing explored world is unchanged, and there will be a visible seam
       # where old terrain meets new. Travel out to see it.
+      # Chunky (worldgen pre-generation) is an ADMIN TOOL, not gameplay. It is
+      # server-only and does nothing until an op runs a command, so it is not
+      # in the player pack and players never see it.
+      # Why it is here: exploring generates chunks on the fly, in competition
+      # with the tick loop for the same cores, which is what made travel feel
+      # slow after Terralith landed. Chunky builds those chunks in advance so
+      # exploring later costs nothing. Run it when nobody is playing:
+      #   docker exec minecraft-java rcon-cli chunky radius 3000
+      #   docker exec minecraft-java rcon-cli chunky start
+      #   docker exec minecraft-java rcon-cli chunky pause     # before players join
+      #   docker exec minecraft-java rcon-cli chunky continue  # resume later
+      # It checkpoints to disk, so a restart resumes rather than starting over.
+      # Pre-generation permanently grows the world save: roughly 1 GB per
+      # 1500-block radius in the overworld. The droplet has ~148 GB free, so a
+      # 3000 radius is comfortable, but do not set 20000 casually.
       # Server-only admin/safety mods, not in the player pack:
       # prismprotect = CoreProtect-style block/chest logging + rollback,
       # playtimestatistics = per-player playtime shown in the tab list.
