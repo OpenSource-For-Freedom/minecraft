@@ -5,7 +5,23 @@
 #   docker pull itzg/minecraft-server:java21
 #   docker image inspect itzg/minecraft-server:java21 --format "{{index .RepoDigests 0}}"
 # then replace the digest below and rebuild.
-FROM itzg/minecraft-server:java21@sha256:4b6a75fd5cbca70ca3580ae8c0ea67286dd99c303554bb57e95bb2bade32f428
+# Bumped 2026-08-12 (was ...4b6a75fd, built 2026-08-01) to clear two HIGH Trivy
+# findings against io.micrometer:micrometer-core 1.16.5, which ships inside the
+# base image's mc-image-helper and is not something this repo installs:
+#   CVE-2026-40983  gRPC denial of service   CVSS 7.5
+#   CVE-2026-40984  HTTP denial of service   CVSS 7.5
+# Both need an attacker to reach a Micrometer-instrumented gRPC or HTTP endpoint.
+# mc-image-helper is a CLI that resolves and downloads mods at container start
+# and then exits; it serves neither protocol and is never network-reachable, so
+# neither CVE is exploitable in this deployment. Bumped anyway because it is free
+# and a noisy alert list hides the finding that does matter one day.
+# This build carries mc-image-helper 1.66.0 (was 1.64.0). micrometer is a
+# TRANSITIVE dependency there, pinned by no build file in that repo, so which
+# version it resolves to could not be confirmed by inspection. The Trivy scan on
+# this commit is the verification: if the two CVEs above still appear against
+# micrometer-core after this merges, the bump did not carry the fix and the next
+# step is asking itzg to update, not re-pinning blindly.
+FROM itzg/minecraft-server:java21@sha256:2b9f121bb539dde1902a1117c2ef5dbb1dfd1283fe242fc1a7a64ba8532b719f
 
 LABEL org.opencontainers.image.source="https://github.com/OpenSource-For-Freedom/minecraft" \
       org.opencontainers.image.description="EduCraft kid-safe Forge 1.20.1 server, hardened build"
