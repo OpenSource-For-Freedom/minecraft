@@ -151,8 +151,22 @@ services:
       PVP: "false"                       # no attacking each other
       ENABLE_COMMAND_BLOCK: "false"      # no redstone command-block exploits
       FORCE_GAMEMODE: "true"             # everyone stays in survival, even after an op-changed session
-      SPAWN_PROTECTION: "16"             # kids can't grief the spawn area
-      ALLOW_FLIGHT: "false"              # survival players shouldn't fly; keeps MythicalAC's fly-hack check meaningful
+      # 0 = off. Was 16, which silently blocked every non-op from placing or
+      # breaking a block within 16 of world spawn. World spawn was moved to the
+      # front of the owner's house, so the protected bubble landed exactly where
+      # the kids build, and a whitelisted player got no error message: blocks
+      # just refuse to place. Spawn protection defends against untrusted players
+      # wandering in, and this server has none: the whitelist is enforced, join
+      # requires a real Microsoft account, and PvP is off. Griefing is still
+      # recoverable because PrismProtect logs every block change with the player
+      # who made it and can roll it back.
+      # If world spawn is ever moved somewhere public, reconsider this.
+      SPAWN_PROTECTION: "0"
+      # false = vanilla kicks a player who stays airborne too long. This is now
+      # the ONLY fly control: the comment here used to credit MythicalAC, which
+      # was uninstalled 2026-08-02, so the anticheat it referred to no longer
+      # exists. Keep this false.
+      ALLOW_FLIGHT: "false"
 
       MAX_PLAYERS: "20"
       ONLINE_MODE: "TRUE"               # Java accounts only (blocks cracked/anonymous clients)
