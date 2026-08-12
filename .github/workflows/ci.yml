@@ -119,6 +119,13 @@ jobs:
           done
           [ "$bad" -eq 0 ] && echo "all $count mod URLs pinned and reachable" || { echo "$bad problem(s)"; exit 1; }
 
+      # Adding a server mod that is not in the client pack, and does not declare
+      # itself server-side, locks every player out with "Incompatible FML modded
+      # server". That shipped once and nobody could join until it was reverted.
+      # A green build must mean players can still connect.
+      - name: Client pack and server mod list are compatible
+        run: python3 tests/test_client_server_mods.py
+
       - name: Shell scripts parse
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
