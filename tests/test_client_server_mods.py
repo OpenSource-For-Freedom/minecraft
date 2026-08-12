@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
-"""Every server mod must either be in the client pack or be a known server-side mod.
+"""Every server mod must either be in the client pack or be a deliberate server-side choice.
 
-Why this exists: Chunky was added to the server on 2026-08-12 and every player
-was immediately locked out with "Incompatible FML modded server / Server mod
-list is not compatible". The reasoning that let it through was that Chunky
-registers no network channels, so it could not reject anyone. That is wrong.
-Forge compares the whole mod list at ping time using each mod's displayTest
-flag in mods.toml, independently of channels. A mod that leaves displayTest at
-the MATCH_VERSION default makes every client without it incompatible.
+CORRECTION, 2026-08-12. The first version of this file claimed Chunky locked
+players out because it leaves displayTest at the MATCH_VERSION default in
+mods.toml, while the other server-only mods declare themselves server-side.
+That was wrong, and reading the jars disproved it: terralith, luckperms,
+profanityguard, bluemap, prismprotect and playtimestatistics ALL omit
+displayTest in exactly the same way, and every one of them was live while
+players joined successfully. Chunky never blocked anyone.
 
-So a mod may only be on the server and absent from the client pack if it is on
-the allowlist below, meaning it has been observed not to break clients.
-Adding a new server-only mod means proving that and adding it here deliberately.
+The red X and "Server mod list is not compatible" are ADVISORY. Forge shows
+them whenever the server runs mods the client lacks, which is the normal state
+of this server. The actual cause of players being unable to connect was upstream
+network filtering of the owner's home IP by DigitalOcean (ticket #12677589).
+
+So this test is NOT a compatibility guarantee, and must not be read as one.
+What it is: a tripwire that makes adding a server-only mod a deliberate,
+reviewed act rather than a silent one, and that catches the real mistake of a
+client-required mod being added to the server but forgotten in the pack. Any
+mod on SERVER_ONLY_OK is one someone decided belongs on the server alone.
+
+Do not remove a mod from the server because a client shows a red X. Check
+reachability first.
 """
 import json
 import os
@@ -22,15 +32,18 @@ import zipfile
 COMPOSE = "docker-compose.yml"
 PACK = "data/EduCraftClient.mrpack"
 
-# Server-only mods proven not to flag clients as incompatible: each declares
-# itself server-side in mods.toml, and all six were live while players joined.
+# Mods deliberately installed on the server only. All are client_side optional
+# or unsupported on Modrinth, meaning the client never needs the jar to play.
+# Adding to this set is a decision, not a formality: it says "this belongs on
+# the server alone and the pack does not need updating".
 SERVER_ONLY_OK = {
-    "luckperms",        # permissions
-    "profanityguard",   # chat filter
-    "bluemap",          # web map
-    "prismprotect",     # block-change logging and rollback
+    "luckperms",         # permissions
+    "profanityguard",    # chat filter
+    "bluemap",           # web map
+    "prismprotect",      # block-change logging and rollback
     "playtimestatistics",
-    "terralith",        # datapack worldgen, server_side=required
+    "terralith",         # datapack worldgen, client_side=optional
+    "dungeonsarise",     # When Dungeons Arise, client_side=unsupported
 }
 
 def norm(name):

@@ -60,7 +60,7 @@ services:
       # image, so we list the jars directly. To refresh after changing the pack:
       # read each file's downloads[0] from the pack's modrinth.index.json where
       # env.server != "unsupported", and join with commas.
-      MODS: "https://cdn.modrinth.com/data/LNytGWDc/versions/8amzvn9x/create-1.20.1-6.0.8.jar,https://cdn.modrinth.com/data/gu7yAYhd/versions/rx9gr1rz/cc-tweaked-1.20.1-forge-1.120.0.jar,https://cdn.modrinth.com/data/fXt291FO/versions/yxrimuPr/cccbridge-mc1.20.1-v1.7.1-forge.jar,https://cdn.modrinth.com/data/SOw6jD6x/versions/mIP0ApJY/AdvancedPeripherals-1.20.1-0.7.48r.jar,https://cdn.modrinth.com/data/R2OftAxM/versions/CsjS7EkP/FarmersDelight-1.20.1-1.3.2.jar,https://cdn.modrinth.com/data/WFwYiVoG/versions/Jo8EwiDR/letsdo-bakery-forge-1.1.15.jar,https://cdn.modrinth.com/data/1DWmBJVA/versions/2I4cH49O/letsdo-vinery-forge-1.4.41.jar,https://cdn.modrinth.com/data/wvMc8AJt/versions/eAALa47O/lightmanscurrency-1.20.1-2.3.0.5.jar,https://cdn.modrinth.com/data/LOpKHB2A/versions/sKoHLGbK/waystones-forge-1.20.1-14.1.20.jar,https://cdn.modrinth.com/data/SaCpeal4/versions/gBDsc134/comforts-forge-6.4.0%2B1.20.1.jar,https://cdn.modrinth.com/data/nU0bVIaL/versions/94dtOLgZ/Patchouli-1.20.1-85-FORGE.jar,https://cdn.modrinth.com/data/u6dRKJwZ/versions/vnxhddW4/jei-1.20.1-forge-15.20.0.133.jar,https://cdn.modrinth.com/data/lhGA9TYQ/versions/1MKTLiiG/architectury-9.2.14-forge.jar,https://cdn.modrinth.com/data/4XJZeZbM/versions/uEaTMht9/letsdo-API-forge-1.2.15-forge.jar,https://cdn.modrinth.com/data/MBAkmtvl/versions/8rz04Kha/balm-forge-1.20.1-7.3.38-all.jar,https://cdn.modrinth.com/data/umyGl7zF/versions/g5igndAv/kubejs-forge-2001.6.5-build.16.jar,https://cdn.modrinth.com/data/sk9knFPE/versions/maCpsT70/rhino-forge-2001.2.3-build.6.jar,https://cdn.modrinth.com/data/ordsPcFz/versions/Zsh14XeQ/kotlinforforge-4.12.0-all.jar,https://cdn.modrinth.com/data/zfbCkvdZ/versions/er56DwLJ/Kambrik-6.1.1%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/BpwWFOVM/versions/EM7Su3PD/Bountiful-6.0.4%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/Vebnzrzj/versions/AudvOzqV/LuckPerms-Forge-5.4.102.jar,https://cdn.modrinth.com/data/w55UhnTf/versions/lkx1EGgV/Profanity%20Guard-forge-1.20.1-1.1.0.jar,https://cdn.modrinth.com/data/swbUV1cr/versions/kC7iYqja/bluemap-5.12-mc1.20-6-forge.jar,https://cdn.modrinth.com/data/FIpr9lji/versions/LcBh53eF/prismprotect-forge-1.3.2-mc1.20.1-1.20.4.jar,https://cdn.modrinth.com/data/rsBa8ErW/versions/l7p4hUk0/playtimestatistics-1.20.x-zh-CN-1.0.1.jar,https://cdn.modrinth.com/data/8oi3bsk5/versions/WeYhEb5d/Terralith_1.20.x_v2.5.4.jar"
+      MODS: "https://cdn.modrinth.com/data/LNytGWDc/versions/8amzvn9x/create-1.20.1-6.0.8.jar,https://cdn.modrinth.com/data/gu7yAYhd/versions/rx9gr1rz/cc-tweaked-1.20.1-forge-1.120.0.jar,https://cdn.modrinth.com/data/fXt291FO/versions/yxrimuPr/cccbridge-mc1.20.1-v1.7.1-forge.jar,https://cdn.modrinth.com/data/SOw6jD6x/versions/mIP0ApJY/AdvancedPeripherals-1.20.1-0.7.48r.jar,https://cdn.modrinth.com/data/R2OftAxM/versions/CsjS7EkP/FarmersDelight-1.20.1-1.3.2.jar,https://cdn.modrinth.com/data/WFwYiVoG/versions/Jo8EwiDR/letsdo-bakery-forge-1.1.15.jar,https://cdn.modrinth.com/data/1DWmBJVA/versions/2I4cH49O/letsdo-vinery-forge-1.4.41.jar,https://cdn.modrinth.com/data/wvMc8AJt/versions/eAALa47O/lightmanscurrency-1.20.1-2.3.0.5.jar,https://cdn.modrinth.com/data/LOpKHB2A/versions/sKoHLGbK/waystones-forge-1.20.1-14.1.20.jar,https://cdn.modrinth.com/data/SaCpeal4/versions/gBDsc134/comforts-forge-6.4.0%2B1.20.1.jar,https://cdn.modrinth.com/data/nU0bVIaL/versions/94dtOLgZ/Patchouli-1.20.1-85-FORGE.jar,https://cdn.modrinth.com/data/u6dRKJwZ/versions/vnxhddW4/jei-1.20.1-forge-15.20.0.133.jar,https://cdn.modrinth.com/data/lhGA9TYQ/versions/1MKTLiiG/architectury-9.2.14-forge.jar,https://cdn.modrinth.com/data/4XJZeZbM/versions/uEaTMht9/letsdo-API-forge-1.2.15-forge.jar,https://cdn.modrinth.com/data/MBAkmtvl/versions/8rz04Kha/balm-forge-1.20.1-7.3.38-all.jar,https://cdn.modrinth.com/data/umyGl7zF/versions/g5igndAv/kubejs-forge-2001.6.5-build.16.jar,https://cdn.modrinth.com/data/sk9knFPE/versions/maCpsT70/rhino-forge-2001.2.3-build.6.jar,https://cdn.modrinth.com/data/ordsPcFz/versions/Zsh14XeQ/kotlinforforge-4.12.0-all.jar,https://cdn.modrinth.com/data/zfbCkvdZ/versions/er56DwLJ/Kambrik-6.1.1%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/BpwWFOVM/versions/EM7Su3PD/Bountiful-6.0.4%2B1.20.1-forge.jar,https://cdn.modrinth.com/data/Vebnzrzj/versions/AudvOzqV/LuckPerms-Forge-5.4.102.jar,https://cdn.modrinth.com/data/w55UhnTf/versions/lkx1EGgV/Profanity%20Guard-forge-1.20.1-1.1.0.jar,https://cdn.modrinth.com/data/swbUV1cr/versions/kC7iYqja/bluemap-5.12-mc1.20-6-forge.jar,https://cdn.modrinth.com/data/FIpr9lji/versions/LcBh53eF/prismprotect-forge-1.3.2-mc1.20.1-1.20.4.jar,https://cdn.modrinth.com/data/rsBa8ErW/versions/l7p4hUk0/playtimestatistics-1.20.x-zh-CN-1.0.1.jar,https://cdn.modrinth.com/data/8oi3bsk5/versions/WeYhEb5d/Terralith_1.20.x_v2.5.4.jar,https://cdn.modrinth.com/data/8DfbfASn/versions/6hQpx5Tc/DungeonsArise-1.20.x-2.1.58-release.jar"
       # Questify (quests) was removed: it and PrismProtect both shade their own
       # copy of org.sqlite as plain classes under the same package name, which
       # Forge's module system refuses to load together ("Modules questory and
@@ -87,24 +87,32 @@ services:
       # NOTE: worldgen only affects chunks generated AFTER this deploys. The
       # existing explored world is unchanged, and there will be a visible seam
       # where old terrain meets new. Travel out to see it.
-      # Chunky (worldgen pre-generation) was added 2026-08-12 and REMOVED the
-      # same night. Do not re-add it to this list without also shipping it in
-      # the client pack.
-      # Why it broke: adding it made every client show "Incompatible FML modded
-      # server / Server mod list is not compatible" with a red X, and refuse to
-      # join. The reasoning that let it through was that Chunky registers no
-      # network channels, so it could not reject anyone. That is wrong. Forge
-      # compares the whole MOD LIST at ping time using each mod's displayTest
-      # flag in mods.toml, independently of channels. The six other server-only
-      # mods here (luckperms, profanityguard, bluemap, prismprotect,
-      # playtimestatistics, terralith) declare themselves server-side and so are
-      # invisible to clients. Chunky leaves displayTest at its MATCH_VERSION
-      # default, so every client missing it is marked incompatible.
-      # If pre-generation is wanted later, the options are: ship Chunky in
-      # EduCraftClient.mrpack too so both sides match (costs every player a pack
-      # re-import), or run it from a temporary container against a stopped world.
-      # The CPU fix that shipped alongside it is the part that actually mattered
-      # and it stays: cpus was raised 2.0 -> 3.5 after the droplet went to 4 vCPU.
+      # THE RED X, and what it does not mean. Clients see "Incompatible FML
+      # modded server / Server mod list is not compatible" with a red X in the
+      # server list whenever the server runs mods the client does not have.
+      # That is every server-only mod below, and it has been true the whole time
+      # players were joining successfully. It is ADVISORY, not a block.
+      # Chunky was removed on 2026-08-12 on the theory that it uniquely caused
+      # this, because it leaves displayTest at the MATCH_VERSION default in
+      # mods.toml. That theory was WRONG and was disproven by reading the jars:
+      # terralith, luckperms, profanityguard, bluemap, prismprotect and
+      # playtimestatistics ALL omit displayTest exactly the same way, and all of
+      # them were live while people played. Chunky never blocked anyone.
+      # The real cause of players being unable to connect in that period was
+      # upstream network filtering of the owner's home IP by DigitalOcean's
+      # abuse mitigation (support ticket #12677589), not anything in this file.
+      # So: do not remove a mod from this list because a client shows a red X.
+      # Verify reachability first. Chunky can be re-added whenever wanted.
+      # The CPU change from that same PR is the part that mattered and it stays:
+      # cpus was raised 2.0 -> 3.5 after the droplet went to 4 vCPU.
+      #
+      # When Dungeons Arise (2.1.58) adds very large hand-built structures:
+      # pirate ships, mountain castles, sky keeps, undead pyramids. Verified
+      # before pinning: release channel, loaders=[forge], lists 1.20.1, no
+      # dependencies, client_side=unsupported so the client never needs the jar
+      # and the player pack does not change. Like all worldgen, it only affects
+      # chunks generated AFTER this deploys; the explored world is untouched and
+      # there will be a seam where old terrain meets new.
       # Server-only admin/safety mods, not in the player pack:
       # prismprotect = CoreProtect-style block/chest logging + rollback,
       # playtimestatistics = per-player playtime shown in the tab list.
