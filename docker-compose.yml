@@ -186,11 +186,28 @@ services:
       # who made it and can roll it back.
       # If world spawn is ever moved somewhere public, reconsider this.
       SPAWN_PROTECTION: "0"
-      # false = vanilla kicks a player who stays airborne too long. This is now
-      # the ONLY fly control: the comment here used to credit MythicalAC, which
-      # was uninstalled 2026-08-02, so the anticheat it referred to no longer
-      # exists. Keep this false.
-      ALLOW_FLIGHT: "false"
+      # true since 2026-08-14, required by Ad Astra. It was false, and the
+      # comment here said to keep it that way; that advice predated space
+      # travel and is now wrong.
+      # What this setting actually does is narrow, and the name misleads:
+      # it does NOT grant anyone the ability to fly. It controls whether the
+      # server KICKS a survival player for being airborne longer than vanilla
+      # expects ("Flying is not enabled on this server"). Ad Astra's low
+      # gravity, jetpacks and rocket flight all look exactly like that to the
+      # check, so with it false, stepping out of the ship on the Moon kicks you.
+      # Players still cannot fly at will. Flight still requires creative mode,
+      # an elytra, or an Ad Astra jetpack they had to build.
+      # What is genuinely given up: the vanilla airborne kick was the last
+      # automatic fly-hack check on this server, since the anticheat was
+      # uninstalled on 2026-08-02. A modified client could now fly unnoticed.
+      # Accepted deliberately: the whitelist is enforced, every player is a
+      # verified Microsoft account, PvP is off, and the population is five
+      # known family members. PrismProtect still logs every block change with
+      # the player who made it, so anything done while flying is attributable
+      # and reversible. That is a better fit than a check that reliably kicks
+      # children out of a space mod we installed on purpose.
+      # If this ever opens to players outside the family, revisit it.
+      ALLOW_FLIGHT: "true"
 
       MAX_PLAYERS: "20"
       ONLINE_MODE: "TRUE"               # Java accounts only (blocks cracked/anonymous clients)
