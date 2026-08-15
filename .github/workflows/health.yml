@@ -39,6 +39,10 @@ on:
         description: 'Include online player names (off by default, see script)'
         type: boolean
         default: false
+      alert_lossy:
+        description: 'Also alert when reachable but dropping pings'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,6 +59,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Runner hardening FIRST, before anything is fetched or run. Placing it
+      # after checkout would leave the checkout itself unmonitored, which is the
+      # step that pulls remote content.
+      # Owner is "Wraith-security" (hyphen, capital W); "wraith_security" does
+      # not resolve and the workflow fails at startup.
+      # Pinned to a full commit SHA, matching ci.yml. A tag like @v1 can be
+      # repointed by whoever controls the action, which is precisely the attack
+      # this step exists to contain, and this job holds a credential.
+      - name: Legion harden runner
+        uses: Wraith-security/legion_runner@0f792305e304ccb691646fb3e34bf2327d46a3a0 # v1.0.56
+        with:
+          egress-policy: audit
+          allowed-presets: ''
+
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -62,9 +80,14 @@ jobs:
 
       - name: Probe the server and report
         env:
-          # Scoped to this step only. Nothing else in the job can read it.
+          # Scoped to this step only. Nothing else in the job can read them.
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GH_API_TOKEN: ${{ github.token }}
+          # Optional. If set, a deliberately powered-off droplet is reported as
+          # "powered off" rather than alerted as an outage. Absent, the check
+          # simply proceeds, so a missing secret never suppresses a real alert.
+          DO_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          DO_DROPLET_ID: '585063347'
         run: |
           set -euo pipefail
           # No `set -x`: it would echo the environment, including the webhook.
@@ -72,10 +95,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             [ "${{ inputs.always_post }}" = "true" ] && args+=(--always-post)
             [ "${{ inputs.show_names }}" = "true" ] && args+=(--show-names)
-          else
-            # On the schedule, post only when something is wrong. A green message
-            # every 30 minutes trains people to ignore the channel, which means
-            # the one red message gets ignored too.
-            :
+            [ "${{ inputs.alert_lossy }}" = "true" ] && args+=(--alert-lossy)
           fi
+          # On the schedule no extra flags are passed, so the script's default
+          # applies: post ONLY when the server is unreachable. A healthy server
+          # is silent, and so is a merely lossy one unless alert_lossy is chosen.
           python3 .github/scripts/server_health.py "${args[@]}"

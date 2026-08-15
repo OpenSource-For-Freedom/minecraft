@@ -34,7 +34,6 @@ import urllib.request
 PROTOCOL = 763  # 1.20.1
 
 
-# ---------------------------------------------------------------- minecraft
 def _varint(n):
     out = b""
     while True:
@@ -112,8 +111,6 @@ def describe(data):
     # up in Discord as literal mojibake like "EduCraft §7Education".
     return re.sub(r"§.", "", text)
 
-
-# ---------------------------------------------------------------- deployment
 def last_deployment(repo, token):
     """Most recent deployment state, so a red health check can be tied to a deploy."""
     if not token:
@@ -143,7 +140,30 @@ def last_deployment(repo, token):
         return None
 
 
-# ---------------------------------------------------------------- discord
+def droplet_state(droplet_id, token):
+    """Ask DigitalOcean whether the box is even supposed to be running.
+
+    Without this, powering the droplet down deliberately (to save money, or
+    while working on it) produces a stream of red alerts that are not faults.
+    An alert you expect to see is an alert you learn to ignore, so a server that
+    is off on purpose must be silent, not noisy.
+
+    Returns 'active', 'off', or None when it cannot be determined. Returning
+    None on error is deliberate: an unreachable DigitalOcean API must not
+    suppress a real outage alert, so the check proceeds as normal.
+    """
+    if not (droplet_id and token):
+        return None
+    req = urllib.request.Request(
+        f"https://api.digitalocean.com/v2/droplets/{droplet_id}",
+        headers={"Authorization": f"Bearer {token}", "User-Agent": "educraft-health"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode())["droplet"]["status"]
+    except Exception:                                # noqa: BLE001
+        return None
+
+
 def post(webhook, payload, dry):
     if dry or not webhook:
         print(json.dumps(payload, indent=2))
@@ -156,8 +176,7 @@ def post(webhook, payload, dry):
         with urllib.request.urlopen(req, timeout=25) as r:
             return r.status in (200, 204)
     except urllib.error.HTTPError as e:
-        # Never print the webhook URL: the URL IS the credential, and anyone
-        # holding it can post to the channel.
+
         print(f"discord rejected the post: HTTP {e.code}", file=sys.stderr)
         return False
     except Exception as e:                           # noqa: BLE001
@@ -182,9 +201,7 @@ def build(host, port, data, ok, total, ms, err, dep, show_names):
             {"name": "Players", "value": f"{players.get('online', '?')} / {players.get('max', '?')}",
              "inline": True},
         ]
-        # Player NAMES are opt-in. A webhook URL is a bearer credential; if it
-        # ever leaks, anything posted through it leaks with it. On a server whose
-        # players are children, usernames are not worth that risk by default.
+ 
         if show_names and players.get("sample"):
             names = ", ".join(p.get("name", "?") for p in players["sample"])
             fields.append({"name": "Online", "value": names[:1000], "inline": False})
@@ -218,32 +235,49 @@ def main():
     ap.add_argument("--attempts", type=int, default=4)
     ap.add_argument("--timeout", type=float, default=8.0)
     ap.add_argument("--gap", type=float, default=3.0)
+    ap.add_argument("--droplet-id", default=os.environ.get("DO_DROPLET_ID", ""),
+                    help="DigitalOcean droplet id, to detect a deliberate power-off")
     ap.add_argument("--show-names", action="store_true",
                     help="include online player names (off by default; see build())")
+    ap.add_argument("--alert-lossy", action="store_true",
+                    help="also post when reachable but dropping pings (default: only when DOWN)")
     ap.add_argument("--always-post", action="store_true",
-                    help="post even when fully healthy (default: only on trouble)")
+                    help="post regardless of state; for testing the wiring")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
+
+
+    state = droplet_state(a.droplet_id, os.environ.get("DO_TOKEN"))
+    if state is not None and state != "active":
+        print(f"droplet status={state}: powered off deliberately, not alerting")
+        if a.always_post:
+            post(os.environ.get("DISCORD_WEBHOOK"), {"embeds": [{
+                "title": "EduCraft is powered off",
+                "description": f"Droplet status is `{state}`. This is not a fault.",
+                "color": 0x6D6455,
+                "footer": {"text": "EduCraft health check"}}]}, a.dry_run)
+        return 0
 
     data, ok, total, ms, err = ping_with_retries(a.host, a.port, a.attempts, a.timeout, a.gap)
     dep = last_deployment(os.environ.get("GITHUB_REPOSITORY", ""), os.environ.get("GH_API_TOKEN"))
 
-    healthy = data is not None and ok == total
-    state = "UP" if data else "DOWN"
-    print(f"host={a.host}:{a.port} state={state} pings={ok}/{total} latency={ms}ms")
+    down = data is None
+    lossy = (not down) and ok < total
+    print(f"host={a.host}:{a.port} state={'DOWN' if down else 'UP'} "
+          f"pings={ok}/{total} latency={ms}ms")
     if err:
         print(f"last error: {err}")
 
-    if healthy and not a.always_post:
-        print("healthy and --always-post not set: not posting to Discord")
+
+    should_post = a.always_post or down or (lossy and a.alert_lossy)
+    if not should_post:
+        reason = "healthy" if not lossy else f"reachable ({ok}/{total}), --alert-lossy not set"
+        print(f"{reason}: not posting to Discord")
         return 0
 
     payload = build(a.host, a.port, data, ok, total, ms, err, dep, a.show_names)
     posted = post(os.environ.get("DISCORD_WEBHOOK"), payload, a.dry_run)
 
-    # Exit non-zero only when the server is genuinely unreachable. Partial loss
-    # is reported but does not fail the workflow, or the run history becomes red
-    # noise that nobody reads.
     if data is None:
         return 1
     return 0 if posted else 0
