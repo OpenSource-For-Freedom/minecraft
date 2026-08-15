@@ -100,8 +100,21 @@ with a cron job instead:
   tar czf ~/mc-backup-$(date +\%F).tgz -C ~/minecraft/data world ops.json whitelist.json server.properties
 ```
 
-> The daily **playtime limiter** (`playtime_limit.ps1`) is Windows-only too.
-> A Linux (cron + rcon) version isn't written yet — ask for it when you move here.
+> ### Daily playtime limits are NOT running
+>
+> There used to be a Windows script (`playtime_limit.ps1`) that read each kid's
+> `play_time` from the server stats, and once they passed a daily cap (default
+> 120 minutes) removed them from the whitelist, which `ENFORCE_WHITELIST` turns
+> into an instant kick. It put them back at the next day rollover.
+>
+> It only ever worked against a local Windows host and has not run since the move
+> to the droplet. It was deleted rather than left in the repo pretending to be a
+> control that was actually switched off.
+>
+> **So there is currently no time limit of any kind.** If you want one back, it
+> needs writing for Linux: a cron job every few minutes calling
+> `docker exec minecraft-java rcon-cli` to read stats and adjust the whitelist.
+> The original logic is in git history if it is ever wanted as a starting point.
 
 ## Later: add a domain
 
