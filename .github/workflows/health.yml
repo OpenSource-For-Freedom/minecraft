@@ -1,0 +1,81 @@
+name: Server health
+
+# Checks the live server from the outside and reports to Discord.
+#
+# SECURITY POSTURE, since this workflow touches a credential:
+#
+# 1. NO SSH, and none of the MC_SSH_* secrets are referenced. Port 22 on the
+#    droplet is open only to DigitalOcean console ranges (specs/0004), so a
+#    GitHub-hosted runner cannot reach it anyway. The alternatives were opening
+#    22 to GitHub's published ranges (thousands of third-party addresses) or
+#    putting a long-lived SSH credential in CI. Both trade a real security
+#    boundary for a nicer report. Not worth it.
+# 2. Only DISCORD_WEBHOOK is exposed, and only to the single step that posts.
+#    The webhook URL is a bearer credential: anyone holding it can post to the
+#    channel, so it is never echoed, never placed in an env block visible to
+#    other steps, and never written to a file.
+# 3. NO pull_request trigger. A PR from a fork could otherwise run modified
+#    code with access to the secret. Schedule and manual only.
+# 4. permissions: contents read only. The workflow reads deployment state via
+#    the automatic GITHUB_TOKEN, which needs no write anywhere.
+# 5. Actions pinned to full commit SHAs. A tag can be repointed by whoever
+#    controls the action; a SHA cannot.
+# 6. Hard timeout, so a hung network call cannot burn minutes indefinitely.
+# 7. The script is standard library only. No pip install, so there is no
+#    dependency that can be swapped underneath an unattended monthly run.
+
+on:
+  schedule:
+    # Every 30 minutes. Frequent enough to catch an outage in a play session,
+    # infrequent enough that the probe itself is not traffic worth noticing.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      always_post:
+        description: 'Post to Discord even when fully healthy'
+        type: boolean
+        default: true
+      show_names:
+        description: 'Include online player names (off by default, see script)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let two health checks overlap: the server has shown TCP loss under
+  # concurrent connections, so overlapping probes would manufacture the very
+  # failure they are meant to detect.
+  group: server-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false   # do not leave a git credential on disk
+
+      - name: Probe the server and report
+        env:
+          # Scoped to this step only. Nothing else in the job can read it.
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # No `set -x`: it would echo the environment, including the webhook.
+          args=(--host 159.65.25.218 --port 25565 --attempts 4 --timeout 8 --gap 3)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            [ "${{ inputs.always_post }}" = "true" ] && args+=(--always-post)
+            [ "${{ inputs.show_names }}" = "true" ] && args+=(--show-names)
+          else
+            # On the schedule, post only when something is wrong. A green message
+            # every 30 minutes trains people to ignore the channel, which means
+            # the one red message gets ignored too.
+            :
+          fi
+          python3 .github/scripts/server_health.py "${args[@]}"
