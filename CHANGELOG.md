@@ -14,6 +14,8 @@ being corrected, and those are the ones most likely to save someone time later.
 ## [Unreleased]
 
 ### Added
+- **SecurityCraft**, required on both client and server (no dependencies to
+  pull in). Pack bumped to versionId 1.2.0. **REQUIRES PACK RE-IMPORT.**
 - Droplet-side security alerting to Discord. A systemd timer runs every 15
   minutes and reports SSH logins, failed-auth bursts, sensitive sudo, fail2ban
   bans, container faults, `ops.json` changes, sensitive file edits, new user
