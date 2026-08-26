@@ -14,8 +14,10 @@ being corrected, and those are the ones most likely to save someone time later.
 ## [Unreleased]
 
 ### Added
-- **SecurityCraft**, required on both client and server (no dependencies to
-  pull in). Pack bumped to versionId 1.2.0. **REQUIRES PACK RE-IMPORT.**
+- **Open Parties and Claims**, required on both client and server (no
+  dependencies to pull in). Integrates with Xaero's Minimap/World Map, already
+  in the pack, so claims show up on the same map. Pack bumped to versionId
+  1.2.1. **REQUIRES PACK RE-IMPORT.**
 - Droplet-side security alerting to Discord. A systemd timer runs every 15
   minutes and reports SSH logins, failed-auth bursts, sensitive sudo, fail2ban
   bans, container faults, `ops.json` changes, sensitive file edits, new user
