@@ -44,10 +44,10 @@ SERVER_ONLY = {
 
 def norm(name):
     """Jar filename -> comparable mod key. Strips version and loader token."""
-    name = name.replace("%20", " ").replace("%2B", "+")
+    name = urllib.parse.unquote(name)
     stem = re.split(r"[-_]\d", name.lower())[0]
     stem = re.sub(r"[-_ ]?(forge|fabric|neoforge|quilt|mc)$", "", stem)
-    return stem.replace("-", "").replace("_", "").replace(" ", "")
+    return re.sub(r"[-_ \[\]]", "", stem)
 
 
 def get_json(url):

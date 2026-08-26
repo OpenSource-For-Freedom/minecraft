@@ -27,6 +27,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import zipfile
 
 COMPOSE = "docker-compose.yml"
@@ -55,10 +56,10 @@ def norm(name):
     'luckperms', which made the first version of this test fail on three mods
     that were perfectly fine.
     """
-    name = name.replace("%20", " ").replace("%2B", "+")
+    name = urllib.parse.unquote(name)
     stem = re.split(r"[-_]\d", name.lower())[0]
     stem = re.sub(r"[-_ ]?(forge|fabric|neoforge|quilt|mc)$", "", stem)
-    return stem.replace("-", "").replace("_", "").replace(" ", "")
+    return re.sub(r"[-_ \[\]]", "", stem)
 
 def main():
     compose = open(COMPOSE, encoding="utf-8").read()
