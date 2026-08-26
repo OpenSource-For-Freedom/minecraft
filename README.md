@@ -5,7 +5,7 @@
 A whitelist-only, hardened Minecraft server for kids and their approved friends.
 Only players you add can join. See `docker-compose.yml` for all safety settings.
 
-## ENTER HERE: [EduCraft]((https://fullhearts.app/))
+## ENTER HERE:[EduCraft](https://fullhearts.app/)
 
 
 ## Players join with the mod pack
