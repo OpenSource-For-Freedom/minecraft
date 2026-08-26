@@ -1,5 +1,5 @@
 # Minecraft Server (Forge 1.20.1)
-![educraft](educraft.png)
+
 [![trivy](https://github.com/OpenSource-For-Freedom/minecraft/actions/workflows/trivy.yml/badge.svg)](https://github.com/OpenSource-For-Freedom/minecraft/actions/workflows/trivy.yml)
 
 A whitelist-only, hardened Minecraft server for kids and their approved friends.
