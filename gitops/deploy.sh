@@ -38,7 +38,7 @@ gh_deployment_create() {
     DEPLOYMENT_ID=$(curl -fsSL -X POST "$GH_API/deployments" \
         -H "Authorization: Bearer $GH_DEPLOY_TOKEN" \
         -H "Accept: application/vnd.github+json" \
-        -d "{\"ref\":\"$1\",\"environment\":\"production\",\"description\":\"droplet 159.65.25.218\",\"auto_merge\":false,\"required_contexts\":[]}" \
+        -d "{\"ref\":\"$1\",\"environment\":\"production\",\"description\":\"educraft droplet\",\"auto_merge\":false,\"required_contexts\":[]}" \
         2>/dev/null | grep -m1 -o '"id"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$') || true
     [ -n "$DEPLOYMENT_ID" ] && log "github deployment #$DEPLOYMENT_ID opened"
     return 0

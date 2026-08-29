@@ -161,5 +161,5 @@ fail2ban-client status sshd 2>/dev/null | tr -d '\t' | grep -iE 'Currently banne
 
 echo
 echo "VERIFY FROM A SECOND TERMINAL BEFORE CLOSING THIS SESSION:"
-echo "  ssh <user>@$(curl -s --max-time 5 ifconfig.me 2>/dev/null || echo 159.65.25.218)"
+echo "  ssh <user>@$(curl -s --max-time 5 ifconfig.me 2>/dev/null || echo '<this droplet'"'"'s public IP>')"
 echo "If you cannot get in, restore with:  cp -a $BACKUP $DROPIN && systemctl reload ssh"

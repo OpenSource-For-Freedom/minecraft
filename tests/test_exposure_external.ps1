@@ -1,11 +1,11 @@
 # External exposure check: what the internet can actually reach on the droplet.
-#   powershell -File tests\test_exposure_external.ps1 [-Ip 159.65.25.218] [-AdminVantage]
+#   powershell -File tests\test_exposure_external.ps1 [-Ip <server-address>] [-AdminVantage]
 # Run WITHOUT -AdminVantage from a stranger's vantage (phone hotspot) for the real
 # verdict: from the admin IP the firewall deliberately allows 22 and 8100.
 # Exits 0 if reality matches expectations, 1 otherwise.
 
 param(
-    [string]$Ip = "159.65.25.218",
+    [string]$Ip = $env:MC_HOST,
     [switch]$AdminVantage
 )
 

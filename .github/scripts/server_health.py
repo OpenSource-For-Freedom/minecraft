@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """EduCraft server health check, reported to Discord.
 
-    python3 .github/scripts/server_health.py --host 159.65.25.218
+    python3 .github/scripts/server_health.py --host <server-address>
     python3 .github/scripts/server_health.py --host ... --dry-run   # print, do not post
 
 Deliberately uses NO SSH and NO credentials against the server.

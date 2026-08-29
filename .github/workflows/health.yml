@@ -32,9 +32,11 @@ on:
   workflow_dispatch:
     inputs:
       always_post:
-        description: 'Post to Discord even when fully healthy'
+        description: 'Post a status card even when healthy (off: real events only)'
         type: boolean
-        default: true
+        # Default OFF. A dispatch is for checking the server, not for generating
+        # a message; a channel that receives "all fine" cards stops being read.
+        default: false
       show_names:
         description: 'Include online player names (off by default, see script)'
         type: boolean
@@ -72,6 +74,12 @@ jobs:
         with:
           egress-policy: audit
           allowed-presets: ''
+          # The connection table Legion prints names every destination it
+          # observes, which would publish the server address in a log anyone
+          # with repo read access can see. Keep the runner hardening, drop the
+          # reporting that would leak the target.
+          disable-telemetry: 'true'
+          job-summary: 'false'
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -87,11 +95,14 @@ jobs:
           # "powered off" rather than alerted as an outage. Absent, the check
           # simply proceeds, so a missing secret never suppresses a real alert.
           DO_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          DO_DROPLET_ID: '585063347'
+          DO_DROPLET_ID: ${{ secrets.DO_DROPLET_ID }}
+          # The server address comes from a secret so it is not committed and
+          # is masked in every log line the runner emits.
+          MC_HOST: ${{ secrets.MC_SSH_HOST }}
         run: |
           set -euo pipefail
           # No `set -x`: it would echo the environment, including the webhook.
-          args=(--host 159.65.25.218 --port 25565 --attempts 4 --timeout 8 --gap 3)
+          args=(--host "$MC_HOST" --port 25565 --attempts 4 --timeout 8 --gap 3)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             [ "${{ inputs.always_post }}" = "true" ] && args+=(--always-post)
             [ "${{ inputs.show_names }}" = "true" ] && args+=(--show-names)

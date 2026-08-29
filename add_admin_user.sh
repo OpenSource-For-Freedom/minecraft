@@ -67,7 +67,7 @@ sshd -T | grep -i '^allowusers'
 echo
 if [ -n "$PASSWORD" ]; then
     echo "==== give this to $USERNAME over a secure channel, then delete it ===="
-    echo "  host:     $(curl -s --max-time 5 ifconfig.me || echo 159.65.25.218)"
+    echo "  host:     $(curl -s --max-time 5 ifconfig.me || echo '<this droplet'"'"'s public IP>')"
     echo "  user:     $USERNAME"
     echo "  password: $PASSWORD"
     echo
