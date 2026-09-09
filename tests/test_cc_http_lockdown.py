@@ -68,12 +68,26 @@ with io.open(PATCH_FILE, encoding="utf-8") as fh:
         print("FAIL  patch definition is valid JSON - %s" % exc)
         sys.exit(1)
 
-print("PASS  patch definition is valid JSON")
+# Strict JSON on purpose. mc-image-helper advertises --json-allow-comments, but
+# that applies to the files being PATCHED, not to the definition read from this
+# directory: a // line here fails with "ALLOW_COMMENTS not enabled for parser"
+# and the patch is silently skipped. Rationale lives in data/patches/README.md.
+print("PASS  patch definition is strict JSON (no comments, which the loader rejects)")
 
-patches = doc.get("patches") or []
-check("patch definition declares exactly one patch", len(patches) == 1)
+# SHAPE. PATCH_DEFINITIONS points at a DIRECTORY, so every file in it must be a
+# PatchDefinition ({"file", "ops"}). The {"patches": [...]} PatchSet wrapper is
+# only valid when the env var names a single file, and using it here makes
+# mc-image-helper reject the definition at startup with "Unrecognized field".
+# The server then boots with stock permissive rules while CI stays green, which
+# is the worst possible failure mode for a security control. Caught exactly this
+# way by running the real patch tool against the pinned image before shipping.
+check("definition is a PatchDefinition, not a PatchSet",
+      "patches" not in doc,
+      'a file in the patches directory must use {"file", "ops"}, not {"patches": [...]}')
+check("definition declares a target file", "file" in doc)
+check("definition declares ops", isinstance(doc.get("ops"), list) and bool(doc["ops"]))
 
-patch = patches[0] if patches else {}
+patch = doc
 
 # The path is the whole ballgame. Forge keeps CC:Tweaked's SERVER config inside
 # the world folder, not in config/. Pointing this at /data/config/ would produce
@@ -146,6 +160,11 @@ with io.open(os.path.join(ROOT, ".gitignore"), encoding="utf-8") as fh:
     ignored = fh.read()
 check("data/patches is not gitignored",
       "data/patches" not in ignored)
+
+# The format rules above are invisible in the JSON itself, so they must be
+# written down next to it or the next person repeats both mistakes.
+check("data/patches/README.md documents the format traps",
+      os.path.isfile(os.path.join(PATCH_DIR, "README.md")))
 
 if failures:
     print("\n%d check(s) failed" % len(failures))

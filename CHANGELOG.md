@@ -35,10 +35,24 @@ being corrected, and those are the ones most likely to save someone time later.
   "domain not permitted" for every host. Allowing one host back is a single
   entry above the catch-all deny.
 
-  **This is not verified live yet.** CI proves the patch is present, wired and
-  deny-by-default. Only reading the effective config inside the running
-  container proves it applied, which is what `tools/verify_cc_http.sh` does.
-  Run it on the droplet after the first deploy carrying this change.
+  **Verified locally against the pinned image before shipping**, by running
+  `mc-image-helper patch` over a seeded stock config and parsing the result.
+  That caught two format traps that would each have failed silently on the
+  droplet with CI green: a file in a `PATCH_DEFINITIONS` *directory* must be a
+  PatchDefinition (`file` + `ops`) and not a PatchSet (`patches: [...]`), and it
+  must be strict JSON, because `--json-allow-comments` applies to the files
+  being patched and not to the definition itself. Both are now CI failures and
+  are written up in `data/patches/README.md`.
+
+  Note the patcher rewrites TOML in a flattened single-quoted form rather than
+  `[[http.rules]]` blocks. Both are valid TOML, but it means grepping for
+  `host = "*"` finds nothing, so `tools/verify_cc_http.sh` parses the TOML
+  properly instead of pattern-matching it.
+
+  **Still not verified on the droplet.** Local proof is that the patch applies
+  and produces correct rules; only reading the effective config inside the
+  running container proves it applied there. Run `tools/verify_cc_http.sh` after
+  the first deploy carrying this change.
 
 ### Added
 - **Open Parties and Claims**, required on both client and server (no
