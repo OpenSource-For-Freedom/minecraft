@@ -13,6 +13,33 @@ being corrected, and those are the ones most likely to save someone time later.
 
 ## [Unreleased]
 
+### Security
+- **In-game computers can no longer call arbitrary hosts.** CC:Tweaked ships
+  every child a programmable computer with an HTTP API, and its stock rules are
+  `deny $private` then `allow *`. Any whitelisted player could write four lines
+  of Lua and make the server issue outbound requests to anything on the
+  internet, including the DigitalOcean metadata endpoint. That is server-side
+  request forgery with a child at the keyboard, and it was reachable on the
+  live server.
+
+  The rules cannot be committed: they are Forge SERVER config, stored per-world
+  at `world/serverconfig/computercraft-server.toml`, and both `data/config/` and
+  `data/world/` are gitignored on purpose because tracking files the server
+  rewrites leaves the droplet worktree dirty and blocks `git pull --ff-only`.
+  So they are applied at every container start through itzg's
+  `PATCH_DEFINITIONS`, which has the useful property of re-asserting itself on
+  every boot rather than being an edit someone can undo by hand on the box.
+  See `data/patches/computercraft-http.json`.
+
+  **Player impact:** the built-in `pastebin` and `wget` programs now fail with
+  "domain not permitted" for every host. Allowing one host back is a single
+  entry above the catch-all deny.
+
+  **This is not verified live yet.** CI proves the patch is present, wired and
+  deny-by-default. Only reading the effective config inside the running
+  container proves it applied, which is what `tools/verify_cc_http.sh` does.
+  Run it on the droplet after the first deploy carrying this change.
+
 ### Added
 - **Open Parties and Claims**, required on both client and server (no
   dependencies to pull in). Integrates with Xaero's Minimap/World Map, already
@@ -25,6 +52,25 @@ being corrected, and those are the ones most likely to save someone time later.
   droplet; see `alerts/`. [#25, #26]
 
 ### Fixed
+- **The daily playtime limiter was never actually off, and this repo said it
+  was for a month.** #21 deleted the Windows `playtime_limit.ps1` and wrote
+  "there is currently no time limit of any kind" into DEPLOY.md and this
+  changelog. That conflated two different limiters: the KubeJS one,
+  `data/kubejs/server_scripts/playtime_limit.js`, was added 2026-07-20 and has
+  been tracked, mounted and loading on every boot the whole time.
+
+  A parent told no parental control exists goes looking for another way to
+  limit their child, or concludes the server is unsuitable. Being wrong in the
+  alarming direction is still being wrong.
+
+  The root cause was not the deletion, it was that nothing was observable. The
+  limiter now announces itself on load (`[playtime] limiter ACTIVE ...`, so
+  `docker logs minecraft-java | grep playtime` answers the question), and any
+  player can run `/playtime` to see their usage and remaining time. Ops, who
+  are exempt and whose own numbers prove nothing, see the limiter's configured
+  state instead. DEPLOY.md now carries a dated correction, and
+  `tests/test_playtime_limiter.py` fails if the claim is reintroduced.
+
 - Health check and security alerts rebuilt around zero false positives. Three
   collectors fired during normal operation, one of which (`RestartCount > 0`)
   would have alerted on **every run forever** after any deploy, because that

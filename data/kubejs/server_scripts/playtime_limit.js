@@ -13,6 +13,15 @@
 const LocalDate = Java.loadClass('java.time.LocalDate')
 const CONFIG = JsonIO.read('kubejs/config/playtime_limits.json') || { default_minutes: 120, exempt: [], players: {} }
 
+// Announce on load. DEPLOY.md and the CHANGELOG both claimed for a month that
+// there was "no time limit of any kind" while this script was tracked, mounted
+// and running, because the Windows playtime_limit.ps1 was deleted at the same
+// time and the two got conflated. Nothing in the server output said either way.
+// This line is how anyone checks in future: `docker logs minecraft-java | grep playtime`.
+console.info('[playtime] limiter ACTIVE - default ' + CONFIG.default_minutes
+    + ' min/day, ' + ((CONFIG.exempt || []).length) + ' exempt, '
+    + Object.keys(CONFIG.players || {}).length + ' per-player override(s). Ops are always exempt.')
+
 function limitSecondsFor(player) {
     if (player.isOp()) return -1 // ops are always unlimited, checked live against ops.json - no config needed
     const username = player.username
@@ -55,4 +64,35 @@ PlayerEvents.tick(event => {
     if (remaining <= 0) {
         player.kick(Text.red("Your playtime for today is up! Come back tomorrow."))
     }
+})
+
+ServerEvents.commandRegistry(event => {
+    const { commands: Commands } = event
+    event.register(
+        Commands.literal('playtime')
+            .executes(ctx => {
+                const player = ctx.source.player
+                if (!player) return 0
+
+                const limitSeconds = limitSecondsFor(player)
+                const used = player.persistentData.getInt('ptSeconds')
+                const usedMin = Math.floor(used / 60)
+
+                if (limitSeconds < 0) {
+                    // Ops and exempt players have no cap, so their own numbers say
+                    // nothing about whether the limiter works. Report its state
+                    // instead: this is the admin answer to "is it actually on?".
+                    player.tell(Text.gold('Playtime limiter: ACTIVE'))
+                    player.tell(Text.white('- You are exempt, so no cap applies to you.'))
+                    player.tell(Text.white('- Default cap for everyone else: ' + CONFIG.default_minutes + ' minutes per day.'))
+                    player.tell(Text.white('- You have played ' + usedMin + ' minute(s) today.'))
+                    return 1
+                }
+
+                const remainingMin = Math.max(0, Math.ceil((limitSeconds - used) / 60))
+                player.tell(Text.gold('You have played ' + usedMin + ' minute(s) today.'))
+                player.tell(Text.white(remainingMin + ' minute(s) left before the daily limit.'))
+                return 1
+            })
+    )
 })

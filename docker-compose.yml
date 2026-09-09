@@ -133,6 +133,13 @@ services:
       # Wipe mods not in the list above on each boot, so version bumps replace
       # cleanly instead of leaving a stale jar behind (a classic mismatch cause).
       REMOVE_OLD_MODS: "TRUE"
+
+      # CC:Tweaked HTTP lockdown. In-game computers could otherwise make the
+      # SERVER issue outbound HTTP to any host on the internet, which is SSRF
+      # with a child at the keyboard. The rules live in the per-world server
+      # config, which is gitignored and cannot be committed, so they are applied
+      # here at every container start instead. See data/patches/ for the why.
+      PATCH_DEFINITIONS: "/data/patches"
       # Raised for Ad Astra, which adds five dimensions (Moon, Mars, Venus,
       # Mercury, Glacio) on top of Terralith and When Dungeons Arise.
       # 5G heap inside a 6.5g container cap, NOT 6G. A JVM needs meaningful

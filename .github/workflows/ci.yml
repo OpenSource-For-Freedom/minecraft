@@ -126,10 +126,25 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      # CC:Tweaked hands children a programmable computer with an HTTP API. Its
+      # stock rules allow every host, so any whitelisted player could make the
+      # server issue outbound requests anywhere. This gate keeps the lockdown
+      # deny-by-default and correctly targeted; liveness is proved separately on
+      # the droplet with tools/verify_cc_http.sh.
+      - name: In-game computers cannot call arbitrary hosts
+        run: python3 tests/test_cc_http_lockdown.py
+
+      # A parental control that is silently off is worse than one that is
+      # absent, and this repo shipped a month of documentation claiming the
+      # limiter was dead while it was running. Guard the control and the claim.
+      - name: Playtime limiter is present, wired and observable
+        run: python3 tests/test_playtime_limiter.py
+
       - name: Shell scripts parse
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
-                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh; do
+                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh \
+                   tools/verify_cc_http.sh; do
             [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
           done
 

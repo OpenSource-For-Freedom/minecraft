@@ -1,0 +1,58 @@
+{
+  "$comment": [
+    "CC:Tweaked HTTP lockdown, applied by itzg's PATCH_DEFINITIONS at every container start.",
+    "",
+    "WHY THIS IS A PATCH AND NOT A COMMITTED CONFIG FILE:",
+    "CC:Tweaked's HTTP rules live in the SERVER config, which Forge stores per-world at",
+    "world/serverconfig/computercraft-server.toml. Both data/config/ and data/world/ are",
+    "gitignored on purpose (see .gitignore: tracking files the server rewrites leaves the",
+    "droplet worktree permanently dirty and blocks git pull --ff-only in gitops/deploy.sh).",
+    "So the config cannot be committed. Patching it at startup is the mechanism that",
+    "survives that constraint and re-asserts itself on every boot.",
+    "",
+    "WHAT THIS CLOSES:",
+    "Children write and run arbitrary Lua on this server. With CC:Tweaked's default rules",
+    "(deny $private, allow *), any player could make the SERVER issue outbound HTTP to any",
+    "host on the internet. That is server-side request forgery with a child at the keyboard,",
+    "and it is reachable today by anyone already whitelisted.",
+    "",
+    "RULE ORDER MATTERS: CC:Tweaked evaluates http.rules top to bottom, first match wins.",
+    "The private-range denies come first, then the catch-all deny. $private already covers",
+    "loopback, RFC1918 and link-local; the explicit CIDRs are kept as belt-and-braces in",
+    "case $private is unsupported on a future version, and because 169.254.169.254 is the",
+    "cloud metadata endpoint on this DigitalOcean droplet and deserves to be named.",
+    "",
+    "FUNCTIONAL TRADEOFF, ACCEPTED DELIBERATELY: the built-in pastebin and wget programs",
+    "now fail with 'domain not permitted' for every host. To allow one host back, insert a",
+    "single {host, action: allow} entry ABOVE the catch-all deny. That is also how the",
+    "Instructor Terminal gets its one allowed origin (see minecraft_website issue #36).",
+    "",
+    "http.enabled stays TRUE on purpose: the API remains present so a denied request",
+    "returns a clear 'domain not permitted' error a child can understand, rather than the",
+    "confusing 'http is disabled' that comes from switching the whole API off."
+  ],
+  "patches": [
+    {
+      "file": "/data/world/serverconfig/computercraft-server.toml",
+      "ops": [
+        { "$set": { "path": "$.http.enabled", "value": true } },
+        { "$set": { "path": "$.http.websocket_enabled", "value": false } },
+        { "$set": { "path": "$.http.max_requests", "value": 8 } },
+        {
+          "$set": {
+            "path": "$.http.rules",
+            "value": [
+              { "host": "$private",         "action": "deny" },
+              { "host": "127.0.0.0/8",      "action": "deny" },
+              { "host": "10.0.0.0/8",       "action": "deny" },
+              { "host": "172.16.0.0/12",    "action": "deny" },
+              { "host": "192.168.0.0/16",   "action": "deny" },
+              { "host": "169.254.0.0/16",   "action": "deny" },
+              { "host": "*",                "action": "deny" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
