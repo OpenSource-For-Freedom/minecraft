@@ -38,7 +38,7 @@ HDR = {"User-Agent": "educraft-pack-sync/1.0 (+github.com/OpenSource-For-Freedom
 # they must not enter the pack. Keep in step with tests/test_client_server_mods.py.
 SERVER_ONLY = {
     "luckperms", "profanityguard", "bluemap", "prismprotect",
-    "playtimestatistics", "terralith", "dungeonsarise",
+    "playtimestatistics", "terralith", "dungeonsarise", "spark",
 }
 
 

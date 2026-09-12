@@ -19,6 +19,15 @@ data/.run-forge.env
 data/kubejs/*/generated/
 data/crash-reports/
 data/local/
+# data/.local/ with the dot is what the container actually creates (HOME=/tmp
+# does not stop it). The rule above, without the dot, never matched it. Found by
+# running the stack locally on 2026-09-12: both this and user_jvm_args.txt below
+# showed up as untracked, which on the droplet is precisely what makes
+# `git pull --ff-only` abort and blocks the gitops deploy.
+data/.local/
+# Written by the Forge installer at every container start, from MEMORY and the
+# sqlite JVM flags in docker-compose.yml. Generated, never authored.
+data/user_jvm_args.txt
 data/log4j2.xml
 data/rhino.local.properties
 data/run.bat
