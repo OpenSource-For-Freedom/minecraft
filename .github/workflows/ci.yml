@@ -126,10 +126,19 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      # The security alerting is the only thing that tells anyone this box is in
+      # trouble, and none of it was gated here. It shipped with the live SSH
+      # account name as a hardcoded default in a PUBLIC repo, a watch-list loop
+      # whose entire body was `:`, and a JSON escaper that silently dropped
+      # whole batches of alerts.
+      - name: Security alerting is honest in both directions
+        run: python3 tests/test_security_alerts.py
+
       - name: Shell scripts parse
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
-                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh; do
+                   add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh \
+                   alerts/security_alert.sh alerts/install_alerts.sh; do
             [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
           done
 

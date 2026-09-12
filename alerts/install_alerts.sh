@@ -42,6 +42,39 @@ chown root:root "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 echo "  permissions: $(stat -c '%U:%G %a' "$ENV_FILE")"
 
+# The list of accounts allowed to log in must NOT live in the repo: the repo is
+# public and the account name is deliberately non-obvious. Read it from sshd's
+# own effective config, which is the authority on who may log in, so nobody has
+# to type it and it stays correct if AllowUsers changes.
+if grep -q '^KNOWN_SSH_USERS=' "$ENV_FILE"; then
+    echo "  KNOWN_SSH_USERS already set in $ENV_FILE (leaving it alone)"
+else
+    ALLOWED="$(sshd -T 2>/dev/null | sed -nE 's/^allowusers (.*)/\1/p' | tr ',' ' ' | tr -s ' ')"
+    if [ -z "$ALLOWED" ]; then
+        ALLOWED="$(cat /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null \
+                   | sed -nE 's/^[[:space:]]*AllowUsers[[:space:]]+(.*)/\1/p' \
+                   | tr ',' ' ' | tr -s ' ' | tr '\n' ' ')"
+    fi
+    if [ -z "$ALLOWED" ]; then
+        echo
+        echo "  sshd declares no AllowUsers, so the expected accounts cannot be derived."
+        echo "  Type them space separated. Leave blank to report EVERY login as unexpected."
+        printf '  accounts: '
+        read -r ALLOWED
+    fi
+    # Trim, and never record root: root cannot log in over SSH here, so an
+    # accepted root login is an incident regardless of this list.
+    ALLOWED="$(printf '%s' "$ALLOWED" | tr ' ' '\n' | grep -v '^root$' | grep -v '^$' | sort -u | tr '\n' ' ' | sed -E 's/ +$//')"
+    umask 077
+    printf 'KNOWN_SSH_USERS=%s\n' "$ALLOWED" >> "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+    if [ -n "$ALLOWED" ]; then
+        echo "  recorded $(printf '%s' "$ALLOWED" | wc -w) expected SSH account(s) in $ENV_FILE (not echoed)"
+    else
+        echo "  WARNING: no expected accounts recorded; every SSH login will alert"
+    fi
+fi
+
 install -m 0755 -o root -g root "$SRC" "$BIN"
 echo "  installed $BIN"
 
@@ -58,7 +91,11 @@ ExecStart=/usr/local/bin/mc-security-alert
 # in every direction that does not break those.
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectHome=true
+# read-only, NOT true. ProtectHome=true hides /home entirely, which would make
+# the check on /home/*/.ssh/authorized_keys find nothing and report nothing -
+# a control that looks present and is not. Those keys are the real way into
+# this box, because root cannot log in over SSH.
+ProtectHome=read-only
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
