@@ -54,9 +54,26 @@ data/logs/
 # Mod JARs (binary)
 data/mods/
 
-# Server folder JARs and logs
-server/*.jar
-server/*.log
+# The Windows-era local server, abandoned when the game moved to the droplet.
+# Untracked 2026-09-12. Nothing in this repo referenced it, and its
+# server.properties actively contradicted the live config: it said
+# white-list=false and view-distance=8 while docker-compose.yml enforces the
+# whitelist and runs view-distance 12. A dead config file that disagrees with
+# the running one is worse than no file, because it reads as documentation.
+# docker-compose.yml env vars are the only source of truth for settings.
+# The directory is left on disk (it holds a 58 MB server.jar) but never tracked.
+server/
+
+# Python bytecode. A .pyc for .github/scripts/server_health.py was tracked for
+# months because there was no rule here at all.
+__pycache__/
+*.pyc
+
+# tools/sync_client_pack.py --write leaves EduCraftClient.mrpack.bak beside the
+# pack, which git then offers to commit next to the real thing. Two files with
+# near-identical names and different mod sets is exactly the trap that
+# EduCraftClientServer.mrpack was.
+*.bak
 
 # Backups (large zips)
 backup/

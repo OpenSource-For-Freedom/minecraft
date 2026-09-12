@@ -126,6 +126,29 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      # Generated and binary artefacts must not be tracked. A compiled .pyc for
+      # .github/scripts/server_health.py rode along for months because
+      # .gitignore had no __pycache__ rule, and `sync_client_pack.py --write`
+      # drops a .mrpack.bak next to the real pack that git then offers to
+      # commit. A second pack with a near-identical name and a different mod
+      # set is the trap that EduCraftClientServer.mrpack already was: a family
+      # downloads the wrong one and cannot join.
+      - name: No generated or binary artefacts tracked
+        shell: bash
+        run: |
+          bad=0
+          for pat in '*.pyc' '__pycache__/*' '*.bak' '*.jar' '*.log' '*.zip'; do
+            hits=$(git ls-files -- "$pat")
+            if [ -n "$hits" ]; then echo "TRACKED $pat:"; echo "$hits"; bad=1; fi
+          done
+          # The Windows-era local server was untracked on 2026-09-12. Its
+          # server.properties claimed white-list=false while the live server
+          # enforces the whitelist, so it read as documentation and was wrong.
+          hits=$(git ls-files -- 'server/')
+          if [ -n "$hits" ]; then echo "TRACKED server/ (dead Windows-era server):"; echo "$hits"; bad=1; fi
+          [ "$bad" -eq 0 ] && echo "clean: no generated, binary or dead files tracked"
+          exit $bad
+
       # The security alerting is the only thing that tells anyone this box is in
       # trouble, and none of it was gated here. It shipped with the live SSH
       # account name as a hardcoded default in a PUBLIC repo, a watch-list loop
