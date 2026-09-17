@@ -25,7 +25,7 @@ jobs:
       # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
       # exactly the class of attack this step exists to contain.
       - name: Legion harden runner
-        uses: Wraith-security/legion_runner@0f792305e304ccb691646fb3e34bf2327d46a3a0 # v1.0.56
+        uses: Wraith-security/legion_runner@b459e7433723418301974a1f05098607b7e8d027 # v1.0.61
         with:
           # Audit first, deliberately. Block mode with the wrong allowlist fails
           # the build, and this job legitimately reaches cdn.modrinth.com,
@@ -35,7 +35,9 @@ jobs:
           egress-policy: audit
           allowed-presets: docker,maven
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false   # read-only checkout; no credential left on disk
 
       - name: Compose file is valid
         run: docker compose config --quiet

@@ -70,7 +70,7 @@ jobs:
       # repointed by whoever controls the action, which is precisely the attack
       # this step exists to contain, and this job holds a credential.
       - name: Legion harden runner
-        uses: Wraith-security/legion_runner@0f792305e304ccb691646fb3e34bf2327d46a3a0 # v1.0.56
+        uses: Wraith-security/legion_runner@b459e7433723418301974a1f05098607b7e8d027 # v1.0.61
         with:
           egress-policy: audit
           allowed-presets: ''
