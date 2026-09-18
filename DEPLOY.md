@@ -1,7 +1,7 @@
 # Deploying to a DigitalOcean Droplet
 
 Run the server in the cloud so friends can join from anywhere. Do this only
-after it works locally — the cloud setup is identical to local, just on a rented
+after it works locally. The cloud setup is identical to local, just on a rented
 Linux box.
 
 ## 1. Create the Droplet
@@ -30,7 +30,7 @@ Firewall** (Networking → Firewalls). Inbound rules:
 | SSH | 22 | Your IP only |
 | Custom TCP | 25565 | All IPv4 + IPv6 (Minecraft) |
 
-BlueMap (8100) stays bound to localhost — reach it via an SSH tunnel, don't
+BlueMap (8100) stays bound to localhost. Reach it via an SSH tunnel, don't
 open it publicly.
 
 ## 3. Deploy
@@ -45,7 +45,7 @@ docker logs -f minecraft-java   # wait for: Done (...)! For help, type "help"
 ```
 
 First boot installs Forge + downloads all mods (a few minutes). The world
-generates fresh on 1.20.1 — no old-world version conflicts.
+generates fresh on 1.20.1, with no old-world version conflicts.
 
 > Use **Compose v2** (`docker compose`, with a space). Some older droplet images
 > ship only the Python `docker-compose` v1.29, which crashes on newer image
@@ -68,8 +68,8 @@ generates fresh on 1.20.1 — no old-world version conflicts.
 
 The players' modpack and the server run from the **same** `data/EduCraftClient.mrpack`
 (env flags make the server skip client-only mods), so client and server always
-match versions. Server-only admin mods (LuckPerms, Profanity Guard, BlueMap) are
-pulled on top via `MODRINTH_PROJECTS` in the compose file.
+match versions. Server-only admin mods (LuckPerms, BlueMap) are pulled on top
+via the version-pinned `MODS` URL list in the compose file.
 
 When you push a new pack or compose change to GitHub, update the droplet:
 
@@ -82,7 +82,7 @@ docker logs -f minecraft-java
 ```
 
 > **Always `chown` after a pull.** Git runs as root, so it rewrites tracked files
-> in `data/` (like `server.properties`) as root — but the container runs as
+> in `data/` (like `server.properties`) as root, but the container runs as
 > uid 1000 and can't write them, which throws `AccessDeniedException` and boot-loops.
 > The `chown` hands them back to the server's user.
 
