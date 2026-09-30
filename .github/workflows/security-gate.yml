@@ -1,0 +1,207 @@
+# Weekly security gate: prove the current pins are still safe, and propose a
+# base-image bump only when a measured scan diff earns it.
+#
+# WHAT THIS DOES NOT DO, stated up front so the green badge is not read as more
+# than it is: it does not detect vulnerabilities in Minecraft mods. No CVE feed
+# indexes Forge mods. See tools/audit_mod_pins.py for what is actually
+# checkable (pulled versions, and CDN bytes drifting from Modrinth's hashes).
+#
+# It also never merges. main auto-deploys to the droplet within ~5 minutes
+# (gitops/deploy.sh), so everything here lands as a PR for a human.
+name: Security gate
+
+on:
+  schedule:
+    # Mondays 07:00 UTC, an hour after the dependabot runs in
+    # .github/dependabot.yml, so a digest PR already exists to attach evidence to.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-gate
+  cancel-in-progress: false
+
+jobs:
+  mod-pins:
+    name: Mod pins still resolve and serve the reviewed bytes
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.audit.outcome }}
+      summary: ${{ steps.audit.outputs.summary }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Audit pinned Modrinth URLs
+        id: audit
+        run: |
+          set -o pipefail
+          python3 tools/audit_mod_pins.py | tee audit.txt
+          {
+            echo 'summary<<EOF'
+            tail -4 audit.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Client pack and server mod list still agree
+        run: python3 tests/test_client_server_mods.py
+
+      - name: KubeJS scripts free of the silent Rhino hazards
+        run: python3 tests/test_kubejs_script_hazards.py
+
+  base-image:
+    name: Does a newer base digest actually fix anything
+    runs-on: ubuntu-latest
+    outputs:
+      newer: ${{ steps.check.outputs.newer }}
+      current: ${{ steps.check.outputs.current }}
+      latest: ${{ steps.check.outputs.latest }}
+      worth: ${{ steps.diff.outputs.worth }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Compare the pinned digest against what itzg publishes now
+        id: check
+        run: |
+          CURRENT=$(grep -oE 'sha256:[a-f0-9]{64}' Dockerfile | head -1)
+          LATEST=$(docker buildx imagetools inspect itzg/minecraft-server:java21 \
+                   | awk '/^Digest:/ {print $2; exit}')
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST"   >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            echo "Pinned digest is current. Nothing to compare."
+          else
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream rebuilt: $CURRENT -> $LATEST"
+          fi
+
+      - name: Build both images
+        if: steps.check.outputs.newer == 'true'
+        run: |
+          docker build -q -t mc-pin:old .
+          sed "s|${{ steps.check.outputs.current }}|${{ steps.check.outputs.latest }}|" \
+            Dockerfile > Dockerfile.new
+          docker build -q -f Dockerfile.new -t mc-pin:new .
+
+      # Scan with the same settings trivy.yml uses, or the comparison is
+      # against a different question than the one the alerts answer.
+      - name: Scan both images
+        if: steps.check.outputs.newer == 'true'
+        run: |
+          for tag in old new; do
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v trivycache:/root/.cache/ \
+              aquasec/trivy:latest image --quiet --scanners vuln \
+              --severity CRITICAL,HIGH --ignore-unfixed \
+              --format json "mc-pin:$tag" > "trivy-$tag.json"
+          done
+
+      - name: Diff the scans
+        id: diff
+        if: steps.check.outputs.newer == 'true'
+        run: |
+          set -o pipefail
+          # Exits 1 if the new image INTRODUCES findings, which fails this job
+          # on purpose: a bump that trades one CVE for another is not an upgrade.
+          python3 tools/diff_trivy.py trivy-old.json trivy-new.json | tee diff.txt
+          python3 tools/diff_trivy.py trivy-old.json trivy-new.json --json > diff.json
+          echo "worth=$(python3 -c "import json;print(str(json.load(open('diff.json'))['worth_taking']).lower())")" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the evidence
+        if: steps.check.outputs.newer == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: base-image-scan-diff
+          path: |
+            diff.txt
+            diff.json
+            trivy-old.json
+            trivy-new.json
+          retention-days: 30
+
+  propose:
+    name: Open a PR when the bump is earned
+    needs: [mod-pins, base-image]
+    if: needs.base-image.outputs.newer == 'true' && needs.base-image.outputs.worth == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: base-image-scan-diff
+
+      - name: Branch, bump, PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ needs.base-image.outputs.current }}
+          LATEST: ${{ needs.base-image.outputs.latest }}
+        run: |
+          set -euo pipefail
+          BRANCH="chore/base-image-${LATEST#sha256:}"
+          BRANCH="${BRANCH:0:40}"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists; a PR is already open for this digest."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          sed -i "s|$CURRENT|$LATEST|" Dockerfile
+          git add Dockerfile
+          git commit -m "chore: bump base image to ${LATEST:0:19}
+
+          Measured, not assumed: both images built and scanned with the same
+          trivy settings CI uses, then diffed with tools/diff_trivy.py. The
+          full diff is attached to the workflow run as an artifact.
+
+          $(sed -n '1,4p' diff.txt)"
+          git push -u origin "$BRANCH"
+          {
+            echo "Upstream rebuilt the base image. This bump was **measured**, not assumed:"
+            echo
+            echo '```'
+            cat diff.txt
+            echo '```'
+            echo
+            echo "The Dockerfile header comment still needs updating by hand if the"
+            echo "per-component counts it documents have changed."
+          } > body.md
+          gh pr create --title "chore: bump base image digest" \
+                       --body-file body.md \
+                       --label dependencies --label docker
+
+  notify:
+    name: Tell Discord if anything failed
+    needs: [mod-pins, base-image, propose]
+    if: always() && contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "::error::DISCORD_WEBHOOK is not set; the gate failed SILENTLY."
+            exit 1
+          fi
+          RUN="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          read -r -d '' MSG <<EOF || true
+          **EduCraft weekly security gate FAILED**
+          mod pins: ${{ needs.mod-pins.result }}
+          base image: ${{ needs.base-image.result }}
+          propose PR: ${{ needs.propose.result }}
+          $RUN
+          EOF
+          jq -nc --arg c "$MSG" '{content:$c}' \
+            | curl -sSf -X POST -H 'Content-Type: application/json' -d @- "$WEBHOOK" \
+            > /dev/null
+          echo "Discord notified."
