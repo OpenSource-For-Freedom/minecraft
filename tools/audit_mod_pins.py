@@ -4,15 +4,22 @@
     python tools/audit_mod_pins.py            # report, exit 1 on a FAIL finding
     python tools/audit_mod_pins.py --json     # machine-readable, for the workflow
 
-WHAT THIS CAN AND CANNOT TELL YOU, because the difference matters and a scanner
-that overstates its reach is worse than none:
+SCOPE, because a scanner that overstates its reach is worse than none:
 
-There is NO CVE feed for Minecraft mods. Nothing indexes Forge mods the way the
-NVD indexes npm or Maven, so this cannot say "mod X has a known vulnerability".
-Anyone claiming a weekly job keeps the modpack free of vulnerabilities is
-describing something that does not exist.
+This checks the AUTHENTICITY of each pinned jar - that it still exists and still
+serves the reviewed bytes. It does NOT look inside the jars.
 
-What IS checkable, and what this actually checks:
+Looking inside is a separate and very real check, and it is done by the
+`mod-jars` job in .github/workflows/security-gate.yml: mods bundle ordinary Java
+libraries, and those ARE indexed by the NVD. That job found BlueMap 5.12
+shipping io.airlift:aircompressor 0.27 (CVE-2025-67721) on the first run.
+
+Nothing indexes Forge mods AS PRODUCTS the way the NVD indexes Maven artifacts,
+so neither check can say "this mod is backdoored". Between them they cover the
+two things that are actually knowable: the bytes changed, or a bundled library
+has a known CVE.
+
+What this file checks:
 
   FAIL  the pinned version no longer exists on Modrinth. Versions get pulled,
         and the usual reason a maintainer pulls one is that it was broken or
@@ -148,7 +155,16 @@ def audit_one(url):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--print-urls", action="store_true",
+                    help="list the pinned jar URLs, one per line, and exit; "
+                         "used by the mod-jars scan job so there is only one "
+                         "parser for the MODS list")
     args = ap.parse_args()
+
+    if args.print_urls:
+        for u in pinned_urls():
+            print(u)
+        return 0
 
     findings = [audit_one(u) for u in pinned_urls()]
     fails = [f for f in findings if f["level"] == "FAIL"]

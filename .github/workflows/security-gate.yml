@@ -1,10 +1,19 @@
 # Weekly security gate: prove the current pins are still safe, and propose a
 # base-image bump only when a measured scan diff earns it.
 #
-# WHAT THIS DOES NOT DO, stated up front so the green badge is not read as more
-# than it is: it does not detect vulnerabilities in Minecraft mods. No CVE feed
-# indexes Forge mods. See tools/audit_mod_pins.py for what is actually
-# checkable (pulled versions, and CDN bytes drifting from Modrinth's hashes).
+# Three checks, covering three different questions:
+#   mod-pins    are the pinned jars still the ones we reviewed? (authenticity)
+#   mod-jars    do those jars bundle libraries with known CVEs? (contents)
+#   base-image  has upstream published a base image that fixes anything?
+#
+# mod-jars exists because NOTHING was scanning the mod jars. trivy.yml scans the
+# IMAGE, and the mods are not in the image - MODS is a list of URLs the container
+# downloads at boot into /data/mods. 32 jars, ~100 MB, never looked at until
+# 2026-09-30, when the first run found BlueMap 5.12 bundling
+# io.airlift:aircompressor 0.27 (CVE-2025-67721).
+#
+# What none of this can do: say whether a mod itself is backdoored. Nothing
+# indexes Forge mods as products the way the NVD indexes Maven artifacts.
 #
 # It also never merges. main auto-deploys to the droplet within ~5 minutes
 # (gitops/deploy.sh), so everything here lands as a PR for a human.
@@ -50,6 +59,62 @@ jobs:
 
       - name: KubeJS scripts free of the silent Rhino hazards
         run: python3 tests/test_kubejs_script_hazards.py
+
+  mod-jars:
+    name: Mod jars scanned for vulnerable bundled libraries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download the pinned jars
+        run: |
+          set -euo pipefail
+          mkdir -p modjars
+          # One parser for the MODS list, in audit_mod_pins.py, so this job and
+          # the audit can never disagree about what is actually pinned.
+          python3 tools/audit_mod_pins.py --print-urls | while read -r url; do
+            curl -sSfL --retry 3 -o "modjars/$(basename "${url%%\?*}")" "$url"
+          done
+          echo "downloaded $(ls modjars | wc -l) jars, $(du -sh modjars | cut -f1)"
+
+      # rootfs, NOT fs. `trivy fs` silently ignores bare .jar files - it reports
+      # "Number of language-specific files num=0" and a clean result, which reads
+      # exactly like "no vulnerabilities". Verified by planting log4j-core 2.14.1
+      # in a directory: `fs` found nothing, `rootfs` found CVE-2021-44228 and six
+      # others. If this job ever reports zero, re-run that control before
+      # believing it.
+      - name: Scan them
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD/modjars:/scan:ro" \
+            -v trivycache:/root/.cache/ \
+            aquasec/trivy:latest rootfs --quiet --scanners vuln \
+            --severity CRITICAL,HIGH --ignore-unfixed \
+            --format json /scan > mod-jars.json
+          python3 - <<'PY'
+          import json, sys
+          doc = json.load(open("mod-jars.json", encoding="utf-8"))
+          rows = [(v, r) for r in (doc.get("Results") or [])
+                  for v in (r.get("Vulnerabilities") or [])]
+          for v, _r in rows:
+              print(f"  {v['Severity']:8} {v['VulnerabilityID']:18} "
+                    f"{v.get('PkgName')} {v.get('InstalledVersion')} "
+                    f"-> fixed in {v.get('FixedVersion')}")
+              print(f"           in {v.get('PkgPath')}")
+          print(f"\n  {len(rows)} finding(s) across the pinned mod jars")
+          # Reported, not fatal: a bundled-library CVE usually has no fix
+          # available downstream - the mod has to rebuild. Discord gets told via
+          # the summary; failing the gate weekly on something unfixable would
+          # train everyone to ignore it.
+          PY
+
+      - name: Keep the evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mod-jar-scan
+          path: mod-jars.json
+          retention-days: 30
 
   base-image:
     name: Does a newer base digest actually fix anything
@@ -180,7 +245,7 @@ jobs:
 
   notify:
     name: Tell Discord if anything failed
-    needs: [mod-pins, base-image, propose]
+    needs: [mod-pins, mod-jars, base-image, propose]
     if: always() && contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
@@ -197,6 +262,7 @@ jobs:
           read -r -d '' MSG <<EOF || true
           **EduCraft weekly security gate FAILED**
           mod pins: ${{ needs.mod-pins.result }}
+          mod jars: ${{ needs.mod-jars.result }}
           base image: ${{ needs.base-image.result }}
           propose PR: ${{ needs.propose.result }}
           $RUN
