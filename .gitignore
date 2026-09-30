@@ -12,11 +12,19 @@ data/ops.json
 data/banned-players.json
 data/banned-ips.json
 data/usercache.json
+# Forge keeps a SECOND name->UUID cache under a different filename. The rule
+# above never matched it, so it sat untracked-but-committable in a PUBLIC
+# repo. Same class of data as usercache.json: player names and UUIDs.
+data/usernamecache.json
 data/bluemap/
 data/config/
 data/.forge-manifest.json
 data/.run-forge.env
 data/kubejs/*/generated/
+# Written by the /hub admin commands and holds coordinates that are only
+# meaningful in ONE world. Committing it would point the droplet's hub at
+# wherever the local test world's hub happened to be.
+data/kubejs/config/hub.json
 data/crash-reports/
 data/local/
 # data/.local/ with the dot is what the container actually creates (HOME=/tmp
