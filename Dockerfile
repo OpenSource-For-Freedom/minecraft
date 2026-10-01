@@ -37,12 +37,25 @@
 # does. A stale scanner is worse than no scanner, because the green check still
 # reads as assurance. Keep the action pin in trivy.yml current.
 #
+# Digest moved 2026-09-30, f71707d9 -> 54149e92, measured not assumed: both
+# images were built locally and scanned with the same trivy settings CI uses
+# (CRITICAL,HIGH, ignore-unfixed). 57 findings -> 48, nothing introduced.
+#   pebble       8 -> 0   rebuilt; same file size, different sha256
+#                         (b47bdf55 -> 5e33a130), so confirm by HASH not size
+#   mc-monitor   2 -> 1   rebuilt, 16760994 -> 16797858 bytes
+#   everything else unchanged, criticals still 3
+# A target with no findings is OMITTED from trivy's json entirely. That is not
+# the same as "not scanned", and reading it as such is how this bump was nearly
+# dismissed as a scanner artefact. Compare file hashes before believing either.
+#
 # Everything still outstanding lives in the BASE image and cannot be fixed here:
 #   gosu    22  Go stdlib 1.24.6, the oldest toolchain in the image
-#   pebble   8  Go stdlib 1.26.5
 #   restify  8  Go stdlib 1.26.5
-#   Java     6  mc-image-helper bundled deps: micrometer-core 1.16.5,
-#               scala-library 2.13.1 (CVE-2022-36944, CRITICAL), jackson 3.1.3
+#   Java    13  mc-image-helper bundled deps: micrometer-core 1.16.5,
+#               scala-library 2.13.1 (CVE-2022-36944, CRITICAL), jackson 3.1.3,
+#               bcprov-jdk18on 1.84 (CVE-2026-8763, CRITICAL)
+#   OS       3  ubuntu 26.04 openssl / libssl3t64
+#   rcon-cli 1
 # None of it is anything this repo installs; this Dockerfile adds only curl and
 # unzip (removed in the same layer) and one checksum-pinned sqlite native lib.
 # Reachability in this deployment is low across the board: restify is itzg's
@@ -52,8 +65,10 @@
 # gRPC nor HTTP, which is what both micrometer CVEs require. mc-monitor is the
 # exception worth watching: the healthcheck runs it, so it executes repeatedly.
 # The fix for all of it is upstream rebuilding with a current Go toolchain and
-# refreshed deps. Ask itzg; do not re-pin blindly hoping a digest moves it.
-FROM itzg/minecraft-server:java21@sha256:f71707d922f9d616c654ff504bf41e4d09dbf4fa1cd9776ccca660bb2accbab8
+# refreshed deps. Ask itzg; do not re-pin blindly hoping a digest moves it -
+# build both and diff the scans, which is what moved this pin and is what
+# .github/workflows/security-gate.yml now does every week.
+FROM itzg/minecraft-server:java21@sha256:54149e92235f24e7d0df68c2e435b96e0a8b899c54701adddf35830bb479adb9
 LABEL org.opencontainers.image.source="https://github.com/OpenSource-For-Freedom/minecraft" \
       org.opencontainers.image.description="EduCraft kid-safe Forge 1.20.1 server, hardened build"
 

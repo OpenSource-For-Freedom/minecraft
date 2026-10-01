@@ -1,0 +1,43 @@
+# Dependabot covers the two ecosystems it genuinely understands. Everything it
+# cannot see - the Modrinth CDN URLs in docker-compose.yml, which are raw
+# hrefs and belong to no package ecosystem - is handled by
+# .github/workflows/security-gate.yml instead.
+#
+# Both open PRs, never push to main. main auto-deploys to the droplet within
+# ~5 minutes (gitops/deploy.sh), so nothing here may merge itself.
+version: 2
+updates:
+  # Workflow actions are pinned by commit SHA in this repo, which is correct and
+  # also means they never update without something asking. This is that thing.
+  # trivy.yml's pin especially: a stale scanner silently under-reports, which is
+  # how a previous micrometer claim in the Dockerfile survived being wrong.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies
+      - github-actions
+
+  # The base image FROM digest. Dependabot proposes the bump; the security-gate
+  # workflow is what proves it, by building the old and new images and diffing
+  # the scans. Do not merge one of these on the badge alone - the Dockerfile
+  # header explains why, at length, with a worked example of getting it wrong.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore"
+    labels:
+      - dependencies
+      - docker
+      - needs-scan-diff
