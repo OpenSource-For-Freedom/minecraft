@@ -11,7 +11,7 @@ updates:
   # also means they never update without something asking. This is that thing.
   # trivy.yml's pin especially: a stale scanner silently under-reports, which is
   # how a previous micrometer claim in the Dockerfile survived being wrong.
-  - package-ecosystem: github-actions
+  - package-ecosystem: actions
     directory: "/"
     schedule:
       interval: weekly
