@@ -8,7 +8,6 @@ request. I review everything before it gets merged.
 
 - Contributors don't get server access. That means no op, no whitelist spot,
   no SSH, no RCON and no console. You don't need any of it to contribute.
-- Contributors don't get write access to this repo. Work from your fork.
 - Anything merged to `main` deploys to the live server automatically, and the
   players are kids. That's why every change gets reviewed, no matter who sent
   it.
