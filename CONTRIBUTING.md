@@ -33,8 +33,52 @@ scripts, and the mod list.
 1. Install the modpack from `data/EduCraftClient.mrpack` using a launcher that
    supports `.mrpack` files (Modrinth App or Prism Launcher). It's Forge 1.20.1
    with the same mods the server runs.
-2. Build and test in a single-player world. Creative mode is fine there.
+2. Build in a single-player world. Creative mode is fine there. To test on a
+   real server, see "Testing on a local server" below.
 3. Fork this repo and clone your fork.
+
+## Testing on a local server
+
+You can run your own copy of the server in Docker using the Dockerfile and
+`docker-compose.yml` in this repo. It's the same setup the real server uses, so
+it's the best way to test scripts, guide book changes, and how a build looks
+on a server.
+
+You'll need Docker with Compose v2 (`docker compose`, with a space) and about
+8 GB of RAM free. The first start downloads Forge and all the mods, so give it
+a few minutes.
+
+1. From your clone, start it:
+   ```bash
+   docker compose up -d --build
+   docker logs -f minecraft-java
+   ```
+   Wait for `Done (...)! For help, type "help"`, then press Ctrl+C to stop
+   following the log. The server keeps running.
+2. On Linux, if the logs show `AccessDeniedException`, the container can't write
+   to `data/`. Fix it with `sudo chown -R 1000:1000 data` and start it again.
+3. The whitelist is on, so add yourself and give yourself op on your local
+   copy:
+   ```bash
+   docker exec -i minecraft-java rcon-cli whitelist add YOUR_USERNAME
+   docker exec -i minecraft-java rcon-cli op YOUR_USERNAME
+   ```
+4. In Minecraft (with the modpack installed), add a server with the address
+   `localhost` and join.
+5. After editing a KubeJS script, run `/reload` in game. For guide book
+   changes, restart the server with `docker compose restart`.
+6. When you're done, stop it with `docker compose down`. Your local world stays
+   in `data/world/` for next time.
+
+A few things to watch out for:
+
+- Don't change `docker-compose.yml` or the `Dockerfile` to get things working
+  locally. If something won't run, open an issue.
+- Running the server creates a lot of files in `data/`. Most are ignored by git,
+  but check `git status` before you commit and only commit the files you meant
+  to change. Schematics you upload in game land in `data/schematics/` and
+  shouldn't be committed. Builds go in `builds/` only.
+- Your local server is yours. Nothing you do on it touches the real server.
 
 ## Submitting a build
 
@@ -63,7 +107,7 @@ containers empty. Regular redstone is fine, just explain what it does.
   layout.
 - KubeJS scripts run on the live server, so they get the most careful review.
   Keep each PR small, explain what the script does, and say how you tested it
-  in single-player. Run `python3 tests/test_kubejs_script_hazards.py` before
+  on your local server. Run `python3 tests/test_kubejs_script_hazards.py` before
   opening the PR.
 - CI has to pass before anything is merged.
 
