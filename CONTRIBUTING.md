@@ -42,43 +42,153 @@ scripts, and the mod list.
 You can run your own copy of the server in Docker using the Dockerfile and
 `docker-compose.yml` in this repo. It's the same setup the real server uses, so
 it's the best way to test scripts, guide book changes, and how a build looks
-on a server.
+on a server. Nothing you do on your local server touches the real one.
 
-You'll need Docker with Compose v2 (`docker compose`, with a space) and about
-8 GB of RAM free. The first start downloads Forge and all the mods, so give it
-a few minutes.
+### What you need
 
-1. From your clone, start it:
-   ```bash
-   docker compose up -d --build
-   docker logs -f minecraft-java
-   ```
-   Wait for `Done (...)! For help, type "help"`, then press Ctrl+C to stop
-   following the log. The server keeps running.
-2. On Linux, if the logs show `AccessDeniedException`, the container can't write
-   to `data/`. Fix it with `sudo chown -R 1000:1000 data` and start it again.
-3. The whitelist is on, so add yourself and give yourself op on your local
-   copy:
-   ```bash
-   docker exec -i minecraft-java rcon-cli whitelist add YOUR_USERNAME
-   docker exec -i minecraft-java rcon-cli op YOUR_USERNAME
-   ```
-4. In Minecraft (with the modpack installed), add a server with the address
-   `localhost` and join.
-5. After editing a KubeJS script, run `/reload` in game. For guide book
-   changes, restart the server with `docker compose restart`.
-6. When you're done, stop it with `docker compose down`. Your local world stays
-   in `data/world/` for next time.
+- Docker with Compose v2. On Windows or Mac, install
+  [Docker Desktop](https://docs.docker.com/get-docker/). On Linux, install
+  [Docker Engine](https://docs.docker.com/engine/install/) and the Compose
+  plugin. Check that it works:
+  ```bash
+  docker --version
+  docker compose version
+  ```
+  Use `docker compose` with a space. The old `docker-compose` (v1) doesn't
+  work with this setup.
+- About 8 GB of free RAM. The server is capped at 6.5 GB.
+- Git, and the modpack installed in your launcher (see "Getting set up").
 
-A few things to watch out for:
+### First start
+
+```bash
+# Clone your fork and go into it
+git clone https://github.com/YOUR_GITHUB_NAME/minecraft.git
+cd minecraft
+
+# Build the image and start the server in the background
+docker compose up -d --build
+
+# Follow the log
+docker logs -f minecraft-java
+```
+
+The first start downloads Forge and all the mods, so it takes a few minutes.
+When you see `Done (...)! For help, type "help"` the server is ready. Press
+Ctrl+C to stop following the log. The server keeps running.
+
+The whitelist is on, so add yourself and make yourself op on your local copy:
+
+```bash
+docker exec -i minecraft-java rcon-cli whitelist add YOUR_USERNAME
+docker exec -i minecraft-java rcon-cli op YOUR_USERNAME
+```
+
+Then in Minecraft, go to Multiplayer, add a server with the address
+`localhost`, and join.
+
+### Docker commands
+
+| What | Command |
+|---|---|
+| Start the server | `docker compose up -d` |
+| Start after changing the Dockerfile or pulling updates | `docker compose up -d --build` |
+| Stop the server | `docker compose stop` |
+| Stop and remove the container (your world is kept) | `docker compose down` |
+| Restart | `docker compose restart` |
+| Is it running? | `docker ps` |
+| Follow the log | `docker logs -f minecraft-java` |
+| Last 100 log lines | `docker logs --tail 100 minecraft-java` |
+| CPU and memory use | `docker stats minecraft-java` |
+| Open the server console | `docker exec -it minecraft-java rcon-cli` (type `exit` to leave) |
+| Run one server command | `docker exec -i minecraft-java rcon-cli COMMAND` |
+
+Server commands you'll probably use, either in the console, with
+`rcon-cli COMMAND`, or in game with a `/` in front:
+
+| What | Command |
+|---|---|
+| Who's online | `list` |
+| Add yourself to the whitelist | `whitelist add YOUR_USERNAME` |
+| Make yourself op | `op YOUR_USERNAME` |
+| Switch to creative or survival | `gamemode creative YOUR_USERNAME` / `gamemode survival YOUR_USERNAME` |
+| Reload KubeJS scripts and datapacks | `reload` |
+| Save the world now | `save-all` |
+| Teleport to coordinates | `tp YOUR_USERNAME X Y Z` |
+
+### Testing your changes
+
+- KubeJS scripts: edit the file in `data/kubejs/server_scripts/`, then run
+  `reload`. Errors show up in `docker logs minecraft-java` and in
+  `data/logs/kubejs/server.log`.
+- Guide book: edit the JSON, then `docker compose restart`.
+- Builds: copy your schematic `.nbt` from `.minecraft/schematics/` into your
+  local server with Create's Schematic Table and print it with a
+  Schematicannon, or load it with a structure block.
+- The web map (BlueMap) is at http://localhost:8100 while the server is running.
+
+### Updating your copy
+
+When the main repo changes, pull the changes into your fork and rebuild:
+
+```bash
+# One time: point "upstream" at the main repo
+git remote add upstream https://github.com/OpenSource-For-Freedom/minecraft.git
+
+# Every time you want the latest
+git checkout main
+git pull upstream main
+docker compose up -d --build
+```
+
+### Starting over with a fresh world
+
+This deletes your local world. It doesn't affect anything else.
+
+```bash
+docker compose down
+rm -rf data/world
+docker compose up -d
+```
+
+On Linux you may need `sudo rm -rf data/world`, since the server's files are
+owned by user 1000.
+
+### Cleaning up
+
+To remove the container and the image when you're done with it:
+
+```bash
+docker compose down --rmi all
+```
+
+### Troubleshooting
+
+- **`AccessDeniedException` in the log (Linux):** the container runs as user
+  1000 and can't write to `data/`. Run `sudo chown -R 1000:1000 data`, then
+  `docker compose up -d`.
+- **Port 25565 is already in use:** another Minecraft server is running on your
+  computer. Stop it, then run `docker compose up -d` again.
+- **Container keeps restarting or gets killed:** usually not enough memory.
+  Close other programs, and in Docker Desktop give Docker at least 8 GB under
+  Settings, Resources.
+- **Apple Silicon Mac crashes when a mob dies or a block changes:** the image ships
+  an x86_64 library that one of the mods needs. Run
+  `DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose up -d --build`. It's
+  slower but works.
+- **"Incompatible FML modded server" when joining:** your modpack doesn't match
+  the server. Reinstall it from `data/EduCraftClient.mrpack` in your clone.
+- **A stuck container won't recreate:** `docker rm -f minecraft-java`, then
+  `docker compose up -d`.
+
+### Before you commit
 
 - Don't change `docker-compose.yml` or the `Dockerfile` to get things working
   locally. If something won't run, open an issue.
 - Running the server creates a lot of files in `data/`. Most are ignored by git,
-  but check `git status` before you commit and only commit the files you meant
-  to change. Schematics you upload in game land in `data/schematics/` and
-  shouldn't be committed. Builds go in `builds/` only.
-- Your local server is yours. Nothing you do on it touches the real server.
+  but run `git status` before you commit and only commit the files you meant to
+  change. Schematics uploaded in game land in `data/schematics/` and shouldn't
+  be committed. Builds go in `builds/` only.
 
 ## Submitting a build
 
