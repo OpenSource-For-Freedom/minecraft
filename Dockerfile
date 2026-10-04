@@ -87,4 +87,30 @@ RUN apt-get update \
     && chmod 644 /opt/sqlite-native/libsqlitejdbc.so \
     && rm /tmp/sqlite-jdbc.jar
 
+# Trim the base image to what this server actually runs. Every binary removed
+# here was a source of Trivy findings and is never executed in this deployment,
+# checked against itzg's own startup scripts (docker-minecraft-server master):
+#   gosu      only used by scripts/start when the container starts as ROOT, to
+#             drop to the minecraft user. This image runs as uid 1000 (USER
+#             below, and user: "1000:1000" in compose), so that branch never
+#             runs. 22 findings, all Go stdlib.
+#   restify   only used by scripts/start-deployBukkitSpigot. This is Forge.
+#             8 findings.
+#   easy-add  itzg's build-time downloader; no startup script calls it.
+#   pebble    not referenced by any startup script.
+# Kept, because they are used: rcon-cli (deploys, backups), mc-monitor (the
+# healthcheck and gitops/deploy.sh's health gate), mc-server-runner (PID 8, runs
+# the server), mc-image-helper (resolves mods and server.properties at boot).
+# If this image is ever run as root again, put gosu back first: scripts/start
+# will exec it and fail.
+#
+# openssl/libssl3t64 are upgraded in place: the base image ships a version with
+# fixed HIGH findings available (see the table above). --only-upgrade never
+# installs anything new.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade openssl libssl3t64 \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/local/bin/gosu /usr/local/bin/restify /usr/bin/restify \
+             /usr/bin/easy-add /usr/local/bin/easy-add /usr/bin/pebble /usr/local/bin/pebble
+
 USER 1000:1000
