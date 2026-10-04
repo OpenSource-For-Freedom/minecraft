@@ -444,6 +444,72 @@ for f in ("alerts/security_alert.sh", "alerts/install_alerts.sh"):
           "add it to the 'Shell scripts parse' step")
 check("CI runs this test", "tests/test_security_alerts.py" in ci_src)
 
+print("== 13. watched players are reported, and nobody else ==")
+
+SAMPLE_LOG = """[21:40:01] [Server thread/INFO] [minecraft/MinecraftServer]: Watched_1 joined the game
+[21:40:05] [Server thread/INFO] [minecraft/MinecraftServer]: <Watched_1> hi "all" | a \\ b
+[21:40:06] [Server thread/INFO] [minecraft/MinecraftServer]: [Not Secure] <Watched_1> unsigned
+[21:40:07] [Server thread/INFO] [minecraft/MinecraftServer]: <SomeKid> hello Watched_1
+[21:40:09] [Server thread/INFO] [minecraft/MinecraftServer]: [Watched_1: Set own game mode to Creative Mode]
+[21:40:10] [Server thread/INFO] [minecraft/MinecraftServer]: [Owner: Set Watched_1's game mode to Creative Mode]
+[21:41:00] [Server thread/INFO] [minecraft/MinecraftServer]: Watched_1 left the game
+[21:41:01] [Server thread/INFO] [minecraft/MinecraftServer]: Watched_1X joined the game
+"""
+
+
+def watch_case(watch_lines, log_text):
+    tmp = tempfile.mkdtemp()
+    try:
+        wf = os.path.join(tmp, "watch.txt")
+        lf = os.path.join(tmp, "log.txt")
+        with open(wf, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(watch_lines)
+        with open(lf, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(log_text)
+        return bash_eval(
+            'WATCH_FILE="$1"\nSINCE="30 minutes ago"\n'
+            'LOG_FILE="$2"\nminecraft_logs() { cat "$LOG_FILE"; }\n'
+            'collect_watched_players',
+            (wf.replace("\\", "/"), lf.replace("\\", "/")))
+    finally:
+        shutil.rmtree(tmp)
+
+
+rc, out, err = watch_case("Watched_1\n", SAMPLE_LOG)
+lines = out.strip().splitlines()
+check("join reported", "medium|Watched_1 joined|at 21:40:01" in lines, out)
+check("leave reported", "medium|Watched_1 left|at 21:41:00" in lines, out)
+check("chat reported, quotes and pipes intact",
+      any(l.startswith("medium|Watched_1 said|21:40:05 hi") for l in lines), out)
+check("unsigned chat reported",
+      "medium|Watched_1 said|21:40:06 unsigned" in lines, out)
+check("their op command is high",
+      "high|Watched_1 ran an op command|21:40:09 Set own game mode to Creative Mode" in lines, out)
+check("someone else mentioning them is not reported",
+      not any("SomeKid" in l or "hello Watched_1" in l for l in lines), out)
+check("an owner command about them is not attributed to them",
+      not any("Watched_1's game mode" in l for l in lines), out)
+check("a longer name containing theirs is not reported",
+      not any("21:41:01" in l for l in lines), out)
+check("every line has the severity|title|detail shape",
+      all(re.match(r"^(high|medium)\|[^|]+\|.+", l) for l in lines), out)
+
+rc, out, err = watch_case("", SAMPLE_LOG)
+check("an empty watch list reports nothing", out.strip() == "", out)
+
+rc, out, err = watch_case("bad name with spaces\n.*\nx\n", SAMPLE_LOG)
+check("invalid names in the watch file are ignored, never used as patterns",
+      out.strip() == "", out)
+
+rc, out, err = bash_eval(
+    'WATCH_FILE=/nonexistent/watch.txt\nSINCE="30 minutes ago"\ncollect_watched_players; echo "rc=$?"')
+check("a missing watch file reports nothing and does not fail",
+      out.strip() == "rc=0", out)
+
+rc, out, err = bash_eval('declare -f main')
+check("main runs collect_watched_players", "collect_watched_players" in out,
+      "a collector main never calls is an invisible no-op")
+
 print("== 12. the scripts parse ==")
 for f in (ALERT, INSTALL):
     proc = subprocess.run([BASH, "-n", f], capture_output=True, text=True)
