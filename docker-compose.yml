@@ -200,7 +200,7 @@ services:
       # creates a world, and that world already exists. Copy the value from
       # the latest deployment status ("seed=..."), which gitops/deploy.sh
       # reports after each successful deploy.
-      SEED: ""
+      SEED: "1691256543523180978"
 
       # --- KID-SAFETY: only approved players can join ---
       ENABLE_WHITELIST: "TRUE"
