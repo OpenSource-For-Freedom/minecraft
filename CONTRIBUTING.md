@@ -128,17 +128,26 @@ server doesn't announce itself. You have to add it by hand.
 Your local world is not a copy of the real one. The world files aren't in this
 repo (they hold the players' data), so your server makes its own:
 
-- **Terrain:** once `SEED` in `docker-compose.yml` is filled in, a new local
-  world has the same land as the real server. Until then it's random, and you
-  may spawn somewhere odd, like inside a dungeon.
-- **Builds:** nothing built on the real server is in your copy, including the
-  hub.
-- **Hub:** the hub and home commands do nothing until a hub is set. Stand where
-  you want it and run `/hub set` (you're op on your copy). `/setworldspawn`
-  moves the world spawn the same way.
+- **Terrain:** `SEED` in `docker-compose.yml` is the real server's seed, so a
+  new local world has the same land.
+- **Spawn:** the spawn point is saved in the world, not the seed, so set it once
+  to match the real server. Run this in game (you're op on your copy):
+  ```
+  /setworldspawn 64 66 -96
+  ```
+  New players and anyone without a bed will then spawn where they do on the real
+  server.
+- **Builds:** nothing built on the real server is in your copy, so the spawn
+  spot will be bare land.
+- **Hub:** the real server has no hub set yet. If you're testing the hub and
+  home commands, stand where you want it and run `/hub set`.
 
-If you made your world before `SEED` was set, start over with a fresh world
-(below) to get the matching terrain.
+If your local world was made before the seed was added, start over with a
+fresh world (below), then run the `/setworldspawn` command above.
+
+The spawn and seed come from the real server. After each deploy the droplet
+reports them on the repo's Deployments page (`seed=...; spawn=X,Y,Z`). If the
+spawn there ever changes, update the command above.
 
 ### Docker commands
 
