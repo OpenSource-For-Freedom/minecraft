@@ -305,6 +305,51 @@ collect_disk() {
     return 0
 }
 
+# --- Watched players: joins, leaves, their chat, and any command feedback the
+# --- server logs for them. For someone given access who is not yet fully
+# --- trusted. The list is a file in the repo (player names are already public
+# --- in the WHITELIST), read at run time so changing it needs no reinstall.
+# --- Names that are not valid Minecraft usernames are ignored, so the file can
+# --- never inject a pattern into the sed below.
+WATCH_FILE="${WATCH_FILE:-/root/minecraft/alerts/watched_players.txt}"
+MAX_WATCH_LINES=15
+
+watched_players() {
+    [ -r "$WATCH_FILE" ] || return 0
+    grep -E '^[A-Za-z0-9_]{3,16}$' "$WATCH_FILE" | sort -u
+    return 0
+}
+
+# The container's stdout since a Unix timestamp. Its own function so the test
+# can feed it canned log lines.
+minecraft_logs() {
+    docker logs --since "$1" minecraft-java 2>&1
+}
+
+collect_watched_players() {
+    local names since_epoch logs name
+    names=$(watched_players)
+    [ -n "$names" ] || return 0
+    # SINCE is either "YYYY-MM-DD HH:MM:SS" or "30 minutes ago"; docker takes
+    # neither, so hand it epoch seconds.
+    since_epoch=$(date -d "$SINCE" +%s 2>/dev/null) || return 0
+    logs=$(minecraft_logs "$since_epoch") || return 0
+    [ -n "$logs" ] || return 0
+    while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        # Vanilla never logs a non-op's commands, so "[Name: ...]" lines are
+        # the feedback the server prints when that player runs an op command.
+        # One appearing means they have op, which is worth knowing at once.
+        printf '%s\n' "$logs" | grep -F -- "$name" | sed -nE \
+            -e "s/^\[([0-9:]+)\].*\]: ${name} joined the game.*/medium|${name} joined|at \1/p" \
+            -e "s/^\[([0-9:]+)\].*\]: ${name} left the game.*/medium|${name} left|at \1/p" \
+            -e "s/^\[([0-9:]+)\].*\]: (\[Not Secure\] )?<${name}> (.*)/medium|${name} said|\1 \3/p" \
+            -e "s/^\[([0-9:]+)\].*\[${name}: (.*)\]\$/high|${name} ran an op command|\1 \2/p" \
+          | awk '!seen[$0]++' | head -n "$MAX_WATCH_LINES"
+    done <<< "$names"
+    return 0
+}
+
 post_to_discord() {
     # Never add -v to curl: it prints the full URL, which is the credential.
     printf '%s' "$1" | curl -sS --fail --max-time 25 \
@@ -370,7 +415,8 @@ main() {
 
     events="$( { collect_ssh_success; collect_ssh_failures; collect_sudo_sensitive;
                  collect_fail2ban; collect_control_health; collect_container;
-                 collect_sensitive_files; collect_new_users; collect_disk; } 2>/dev/null \
+                 collect_sensitive_files; collect_new_users; collect_disk;
+                 collect_watched_players; } 2>/dev/null \
                | grep -v '^[[:space:]]*$' )"
 
     # An empty account list means logins cannot be recognised. Say so, but on

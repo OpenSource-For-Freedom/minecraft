@@ -207,7 +207,10 @@ services:
       ENFORCE_WHITELIST: "TRUE"          # kicks anyone removed from the whitelist immediately
       OPS: "Melfonz1960"                 # your Minecraft username = the only admin
       # WHITELIST: add kids' usernames here comma-separated, e.g. "kid1,kid2,friend1"
-      WHITELIST: ""
+      # Merged into the live whitelist on each deploy; nobody already on it is
+      # removed. SihabMaybe: design contributor, survival or creative, NOT op.
+      # Watched by the Discord alerts (alerts/watched_players.txt).
+      WHITELIST: "SihabMaybe"
 
       # --- KID-SAFETY: lock down risky gameplay ---
       PVP: "false"                       # no attacking each other
