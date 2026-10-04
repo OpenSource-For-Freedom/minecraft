@@ -25,8 +25,8 @@ request. I review everything before it gets merged.
 | Server scripts | `data/kubejs/server_scripts/` | KubeJS gameplay scripts |
 
 These are off limits and PRs that change them will be closed:
-`docker-compose.yml`, `Dockerfile`, `gitops/`, `alerts/`, `.github/`, the shell
-scripts, and the mod list.
+`docker-compose.yml`, `docker-compose.local.yml`, `Dockerfile`, `gitops/`,
+`alerts/`, `.github/`, the shell scripts, and the mod list.
 
 ## Getting set up
 
@@ -66,12 +66,28 @@ on a server. Nothing you do on your local server touches the real one.
 git clone https://github.com/YOUR_GITHUB_NAME/minecraft.git
 cd minecraft
 
+# Label your copy as a local test server (one time, see below)
+printf 'COMPOSE_FILE=docker-compose.yml:docker-compose.local.yml\nCOMPOSE_PATH_SEPARATOR=:\n' > .env
+
 # Build the image and start the server in the background
 docker compose up -d --build
 
 # Follow the log
 docker logs -f minecraft-java
 ```
+
+The `.env` line makes Docker also load `docker-compose.local.yml`, which
+changes the server's message in the Multiplayer list to a red
+**LOCAL TEST SERVER**. Without it, your copy looks exactly like the real server.
+`.env` is ignored by git, and the real server never reads it. On Windows
+PowerShell, create the file with:
+
+```powershell
+"COMPOSE_FILE=docker-compose.yml:docker-compose.local.yml`nCOMPOSE_PATH_SEPARATOR=:" | Out-File -Encoding ascii .env
+```
+
+If the label doesn't show, run `docker compose config | grep MOTD`. It should
+say LOCAL TEST SERVER.
 
 The first start downloads Forge and all the mods, so it takes a few minutes.
 When you see `Done (...)! For help, type "help"` the server is ready. Press
