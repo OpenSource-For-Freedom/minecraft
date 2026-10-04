@@ -120,7 +120,25 @@ server doesn't announce itself. You have to add it by hand.
    `data/EduCraftClient.mrpack`. A plain Forge instance won't connect.
 3. In Minecraft, go to Multiplayer, click Add Server, enter `localhost` as the
    Server Address, click Done, and join. If `localhost` doesn't work, try
-   `127.0.0.1`.
+   `127.0.0.1`. Name the entry something like "Local test" so you don't mix it
+   up with the real server.
+
+### Your local world
+
+Your local world is not a copy of the real one. The world files aren't in this
+repo (they hold the players' data), so your server makes its own:
+
+- **Terrain:** once `SEED` in `docker-compose.yml` is filled in, a new local
+  world has the same land as the real server. Until then it's random, and you
+  may spawn somewhere odd, like inside a dungeon.
+- **Builds:** nothing built on the real server is in your copy, including the
+  hub.
+- **Hub:** the hub and home commands do nothing until a hub is set. Stand where
+  you want it and run `/hub set` (you're op on your copy). `/setworldspawn`
+  moves the world spawn the same way.
+
+If you made your world before `SEED` was set, start over with a fresh world
+(below) to get the matching terrain.
 
 ### Docker commands
 
