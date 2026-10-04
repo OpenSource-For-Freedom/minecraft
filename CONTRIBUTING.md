@@ -84,8 +84,27 @@ docker exec -i minecraft-java rcon-cli whitelist add YOUR_USERNAME
 docker exec -i minecraft-java rcon-cli op YOUR_USERNAME
 ```
 
-Then in Minecraft, go to Multiplayer, add a server with the address
-`localhost`, and join.
+### Connecting to your local server
+
+The server won't show up in your launcher or in Minecraft's server list on its
+own. That list only finds single-player worlds opened to LAN, and a Docker
+server doesn't announce itself. You have to add it by hand.
+
+1. Check that the server is up:
+   ```bash
+   docker ps
+   ```
+   You should see `minecraft-java` with a status of `Up` and
+   `0.0.0.0:25565->25565`. Then check the log:
+   ```bash
+   docker logs --tail 50 minecraft-java
+   ```
+   Wait until you see `Done (...)! For help, type "help"`.
+2. In Modrinth App (or Prism), launch the EduCraft instance you imported from
+   `data/EduCraftClient.mrpack`. A plain Forge instance won't connect.
+3. In Minecraft, go to Multiplayer, click Add Server, enter `localhost` as the
+   Server Address, click Done, and join. If `localhost` doesn't work, try
+   `127.0.0.1`.
 
 ### Docker commands
 
@@ -178,6 +197,15 @@ docker compose down --rmi all
   slower but works.
 - **"Incompatible FML modded server" when joining:** your modpack doesn't match
   the server. Reinstall it from `data/EduCraftClient.mrpack` in your clone.
+- **"You are not whitelisted on this server":** add yourself with
+  `docker exec -i minecraft-java rcon-cli whitelist add YOUR_USERNAME`.
+- **"Failed to verify username":** the server only accepts real Minecraft
+  accounts. Sign in to your launcher with your Microsoft account, not an
+  offline account.
+- **"Connection refused" or the server shows as offline:** it hasn't finished
+  starting yet (check `docker logs --tail 50 minecraft-java`), or Docker is
+  running on a different computer or VM. In that case use that machine's IP
+  address instead of `localhost`.
 - **A stuck container won't recreate:** `docker rm -f minecraft-java`, then
   `docker compose up -d`.
 
