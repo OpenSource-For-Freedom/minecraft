@@ -157,7 +157,15 @@ done
 
 if [ "$healthy" = true ]; then
     log "DEPLOY OK at ${NEW_SHA:0:8}"
-    gh_deployment_status success "server answering at ${NEW_SHA:0:8}"
+    # Publish the world seed in the deployment status, so it can be copied
+    # into SEED in docker-compose.yml for local copies. CI has no route in (no
+    # SSH, RCON not published), so the droplet reports it outward instead.
+    # Matched with a bash regex, not a pipe: `grep | head` under pipefail can
+    # SIGPIPE and abort a deploy that already succeeded.
+    seed=""
+    seed_out=$(rcon seed)
+    if [[ $seed_out =~ (-?[0-9]+) ]]; then seed=${BASH_REMATCH[1]}; fi
+    gh_deployment_status success "server answering at ${NEW_SHA:0:8}${seed:+; seed=$seed}"
     rcon say "Update complete. Welcome back."
     exit 0
 fi

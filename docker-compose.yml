@@ -194,6 +194,13 @@ services:
       # audience you do not want to attract. EduCraft says nothing about who is
       # on it. The safety controls are the whitelist and online-mode, not the label.
       MOTD: "EduCraft §7Education and Adventure"
+      # The live world's seed, so every fresh LOCAL copy generates the same
+      # terrain as the real server (builds are not included, only the land).
+      # It does nothing to the droplet: Minecraft reads the seed only when it
+      # creates a world, and that world already exists. Copy the value from
+      # the latest deployment status ("seed=..."), which gitops/deploy.sh
+      # reports after each successful deploy.
+      SEED: ""
 
       # --- KID-SAFETY: only approved players can join ---
       ENABLE_WHITELIST: "TRUE"
