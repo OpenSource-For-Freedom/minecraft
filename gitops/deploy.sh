@@ -165,7 +165,14 @@ if [ "$healthy" = true ]; then
     seed=""
     seed_out=$(rcon seed)
     if [[ $seed_out =~ (-?[0-9]+) ]]; then seed=${BASH_REMATCH[1]}; fi
-    gh_deployment_status success "server answering at ${NEW_SHA:0:8}${seed:+; seed=$seed}"
+    # Spawn and hub coordinates too, read by gitops/world_info.py. The world
+    # spawn can't be queried by any 1.20.1 command, and the hub lives in a
+    # gitignored file, so this is the only way they reach the repo. `|| true`
+    # because a world that can't be read must never fail a finished deploy.
+    world=$(python3 "$REPO_DIR/gitops/world_info.py" 2>/dev/null || true)
+    desc="server answering at ${NEW_SHA:0:8}${seed:+; seed=$seed}${world:+; $world}"
+    # GitHub rejects a status description longer than 140 characters.
+    gh_deployment_status success "${desc:0:140}"
     rcon say "Update complete. Welcome back."
     exit 0
 fi
