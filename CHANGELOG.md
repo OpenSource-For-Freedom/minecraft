@@ -13,6 +13,17 @@ being corrected, and those are the ones most likely to save someone time later.
 
 ## [Unreleased]
 
+### Security
+- **Removed unused base-image binaries and upgraded OpenSSL** (`Dockerfile`).
+  `gosu` (22 Trivy findings) only runs when the container starts as root, and
+  this one runs as uid 1000. `restify` (8) is only used for Bukkit/Spigot.
+  `easy-add` and `pebble` are never called at runtime. All four are deleted;
+  `openssl`/`libssl3t64` are upgraded in place. Expected to clear about 33 of
+  the 51 open code scanning alerts. What remains is in binaries the server
+  uses (mc-image-helper's Java libraries, mc-monitor, rcon-cli) and needs
+  upstream fixes. A new CI step fails the build if a removed binary comes back
+  or a needed one goes missing.
+
 ### Added
 - **Design role** (`data/kubejs/server_scripts/design_role.js`,
   `data/kubejs/config/designers.json`). Players listed in the config are put in

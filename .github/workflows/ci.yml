@@ -69,6 +69,22 @@ jobs:
             *) echo "FAIL: image must run as uid 1000"; exit 1 ;;
           esac
 
+      # The Dockerfile deletes base-image binaries this server never runs, to
+      # cut Trivy findings. Check both directions: the unused ones are gone, and
+      # nothing the server, the healthcheck or gitops/deploy.sh needs went with
+      # them. A missing rcon-cli or mc-monitor would break deploys, not CI.
+      - name: Unused base binaries removed, needed ones kept
+        run: |
+          docker run --rm --entrypoint sh minecraft-java:secure -c '
+            fail=0
+            for b in gosu restify easy-add pebble; do
+              if command -v "$b" >/dev/null 2>&1; then echo "STILL PRESENT: $b"; fail=1; else echo "removed  $b"; fi
+            done
+            for b in rcon-cli mc-monitor mc-server-runner mc-image-helper mc-health java; do
+              if command -v "$b" >/dev/null 2>&1; then echo "present  $b"; else echo "MISSING: $b"; fail=1; fi
+            done
+            exit $fail'
+
       - name: Container hardening assertions
         shell: bash
         run: |
