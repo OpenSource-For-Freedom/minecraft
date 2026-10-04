@@ -42,6 +42,8 @@ jobs:
       summary: ${{ steps.audit.outputs.summary }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # no git credential left on disk
 
       - name: Audit pinned Modrinth URLs
         id: audit
@@ -65,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # no git credential left on disk
 
       - name: Download the pinned jars
         run: |
@@ -126,6 +130,8 @@ jobs:
       worth: ${{ steps.diff.outputs.worth }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # no git credential left on disk
 
       - name: Compare the pinned digest against what itzg publishes now
         id: check
@@ -198,6 +204,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # no git credential left on disk
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -228,7 +236,9 @@ jobs:
           full diff is attached to the workflow run as an artifact.
 
           $(sed -n '1,4p' diff.txt)"
-          git push -u origin "$BRANCH"
+          # The checkout keeps no credential (persist-credentials: false), so the
+          # token is handed to this one push only.
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
           {
             echo "Upstream rebuilt the base image. This bump was **measured**, not assumed:"
             echo
@@ -239,7 +249,7 @@ jobs:
             echo "The Dockerfile header comment still needs updating by hand if the"
             echo "per-component counts it documents have changed."
           } > body.md
-          gh pr create --title "chore: bump base image digest" \
+          gh pr create --head "$BRANCH" --title "chore: bump base image digest" \
                        --body-file body.md \
                        --label dependencies --label docker
 
