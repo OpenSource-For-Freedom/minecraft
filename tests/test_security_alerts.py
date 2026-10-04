@@ -452,6 +452,8 @@ SAMPLE_LOG = """[21:40:01] [Server thread/INFO] [minecraft/MinecraftServer]: Wat
 [21:40:07] [Server thread/INFO] [minecraft/MinecraftServer]: <SomeKid> hello Watched_1
 [21:40:09] [Server thread/INFO] [minecraft/MinecraftServer]: [Watched_1: Set own game mode to Creative Mode]
 [21:40:10] [Server thread/INFO] [minecraft/MinecraftServer]: [Owner: Set Watched_1's game mode to Creative Mode]
+[21:40:30] [Server thread/INFO] [KubeJS Server/]: [design] Watched_1: fill 64 66 -96 70 70 -90 minecraft:stone
+[21:40:31] [Server thread/INFO] [KubeJS Server/]: [design] SomeKid: setblock 1 2 3 minecraft:dirt
 [21:41:00] [Server thread/INFO] [minecraft/MinecraftServer]: Watched_1 left the game
 [21:41:01] [Server thread/INFO] [minecraft/MinecraftServer]: Watched_1X joined the game
 """
@@ -485,6 +487,10 @@ check("unsigned chat reported",
       "medium|Watched_1 said|21:40:06 unsigned" in lines, out)
 check("their op command is high",
       "high|Watched_1 ran an op command|21:40:09 Set own game mode to Creative Mode" in lines, out)
+check("their /design use reported",
+      "medium|Watched_1 used /design|21:40:30 fill 64 66 -96 70 70 -90 minecraft:stone" in lines, out)
+check("someone else's /design use is not reported",
+      not any("SomeKid" in l and "design" in l for l in lines), out)
 check("someone else mentioning them is not reported",
       not any("SomeKid" in l or "hello Watched_1" in l for l in lines), out)
 check("an owner command about them is not attributed to them",

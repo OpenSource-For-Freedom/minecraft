@@ -14,6 +14,20 @@ being corrected, and those are the ones most likely to save someone time later.
 ## [Unreleased]
 
 ### Added
+- **Design role** (`data/kubejs/server_scripts/design_role.js`,
+  `data/kubejs/config/designers.json`). Players listed in the config are put in
+  creative on every login and get `/design fill`, `setblock`, `clone` and `tp`,
+  without being op. The commands only accept whole-number coordinates inside a
+  zone around the world spawn (64, -96, radius 150), plain block ids with no
+  states or NBT, and never command, structure or jigsaw blocks. `tp` only moves
+  the player who ran it. If the config can't be read, nobody is a designer.
+  `/design` edits are not recorded by PrismProtect, which is why the zone
+  exists. Each use is logged as `[design] <name>: <command>` and reported to
+  Discord for watched players. `tests/test_design_role.js` runs the checks
+  against inputs built to escape them. Server-side only, **no pack re-import**.
+- **`gitops/deploy.sh` reloads KubeJS** after a deploy that changed anything in
+  `data/kubejs`. `data/` is a bind mount, so script-only changes never
+  recreated the container and a running server kept the old scripts.
 - **Hub spawn, player homes and an opt-in walkthrough**
   (`data/kubejs/server_scripts/hub.js`). Every login lands the player in the
   hub an op designates with `/hub set`, so the hub is the front door every

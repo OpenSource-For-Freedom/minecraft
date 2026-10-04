@@ -159,6 +159,13 @@ jobs:
       - name: Security alerting is honest in both directions
         run: python3 tests/test_security_alerts.py
 
+      # The design role is what lets a non-op edit the world. Its argument
+      # checks are the whole security boundary, so they are tested against
+      # inputs built to escape them: command blocks, NBT, selectors, chained
+      # commands, and edits outside the zone.
+      - name: Design role only allows safe commands
+        run: node tests/test_design_role.js
+
       - name: Shell scripts parse
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \

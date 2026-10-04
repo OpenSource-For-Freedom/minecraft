@@ -305,7 +305,8 @@ collect_disk() {
     return 0
 }
 
-# --- Watched players: joins, leaves, their chat, and any command feedback the
+# --- Watched players: joins, leaves, their chat, their /design commands (see
+# --- data/kubejs/server_scripts/design_role.js), and any command feedback the
 # --- server logs for them. For someone given access who is not yet fully
 # --- trusted. The list is a file in the repo (player names are already public
 # --- in the WHITELIST), read at run time so changing it needs no reinstall.
@@ -345,6 +346,7 @@ collect_watched_players() {
             -e "s/^\[([0-9:]+)\].*\]: ${name} left the game.*/medium|${name} left|at \1/p" \
             -e "s/^\[([0-9:]+)\].*\]: (\[Not Secure\] )?<${name}> (.*)/medium|${name} said|\1 \3/p" \
             -e "s/^\[([0-9:]+)\].*\[${name}: (.*)\]\$/high|${name} ran an op command|\1 \2/p" \
+            -e "s/^\[([0-9:]+)\].*\[design\] ${name}: (.*)/medium|${name} used \/design|\1 \2/p" \
           | awk '!seen[$0]++' | head -n "$MAX_WATCH_LINES"
     done <<< "$names"
     return 0
