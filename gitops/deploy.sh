@@ -157,6 +157,16 @@ done
 
 if [ "$healthy" = true ]; then
     log "DEPLOY OK at ${NEW_SHA:0:8}"
+    # data/ is a bind mount, so a change that only touches KubeJS scripts or
+    # their config does not recreate the container, and a running server keeps
+    # the old scripts until something reloads them. Reload when they changed.
+    # Captured into a variable, not piped into grep -q: under pipefail an early
+    # grep exit can SIGPIPE git and make the test read as "nothing changed".
+    kubejs_changed=$(git diff --name-only "$OLD_SHA" "$NEW_SHA" -- data/kubejs 2>/dev/null || true)
+    if [ -n "$kubejs_changed" ]; then
+        log "KubeJS files changed; reloading scripts"
+        rcon reload
+    fi
     # Publish the world seed in the deployment status, so it can be copied
     # into SEED in docker-compose.yml for local copies. CI has no route in (no
     # SSH, RCON not published), so the droplet reports it outward instead.
