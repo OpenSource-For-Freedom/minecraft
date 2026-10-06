@@ -45,7 +45,7 @@ const cx = CONFIG.zone_center_x, cz = CONFIG.zone_center_z
 
 console.log('== config ==')
 check('the committed config lists SihabMaybe', hook.config.players.indexOf('SihabMaybe') !== -1)
-check('the zone is centred on the world spawn', cx === 64 && cz === -96)
+check('the zone is centred on the world spawn', cx === 587 && cz === 87)
 
 console.log('== allowed ==')
 let r = build('setblock', `${cx} 70 ${cz} minecraft:stone`)

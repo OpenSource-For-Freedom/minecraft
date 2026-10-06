@@ -167,6 +167,10 @@ if [ "$healthy" = true ]; then
         log "KubeJS files changed; reloading scripts"
         rcon reload
     fi
+    # World settings the repo owns (gitops/world_settings.conf), applied now
+    # that the server answers. A failure here must never fail a finished
+    # deploy, so it is reported and the deploy carries on.
+    bash "$REPO_DIR/gitops/apply_world_settings.sh" || log "warning: could not apply world settings"
     # Publish the world seed in the deployment status, so it can be copied
     # into SEED in docker-compose.yml for local copies. CI has no route in (no
     # SSH, RCON not published), so the droplet reports it outward instead.
