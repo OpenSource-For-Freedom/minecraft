@@ -516,6 +516,62 @@ rc, out, err = bash_eval('declare -f main')
 check("main runs collect_watched_players", "collect_watched_players" in out,
       "a collector main never calls is an invisible no-op")
 
+print("== 14. drift between the server and GitHub is reported once ==")
+
+# Driven against a real throwaway repo. The collector is the only thing that
+# notices code which exists on the droplet and nowhere in git, so it has to
+# be right in all four directions: clean is silent, drift reports, the same
+# drift does not report twice, and fixing it re-arms the alert.
+DRIFT = r'''
+set -e
+d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+git init -q "$d/repo"; cd "$d/repo"
+git config user.email t@example.invalid; git config user.name t
+mkdir -p data/kubejs/server_scripts
+echo tracked > data/kubejs/server_scripts/a.js
+printf 'data/ignored.txt\n' > .gitignore
+git add -A; git commit -q -m init
+cd "$OLDPWD"
+REPO_DIR="$d/repo"; STATE_DIR="$d/state"; DRIFT_STATE="$STATE_DIR/last-drift"; mkdir -p "$STATE_DIR"
+echo "clean=[$(collect_repo_drift)]"
+echo secret > "$d/repo/data/ignored.txt"
+echo "ignored=[$(collect_repo_drift)]"
+echo x > "$d/repo/data/kubejs/server_scripts/autoclaim.js"
+echo "first=[$(collect_repo_drift)]"
+echo "second=[$(collect_repo_drift)]"
+echo y > "$d/repo/data/kubejs/server_scripts/other.js"
+echo "changed=[$(collect_repo_drift)]"
+echo z >> "$d/repo/data/kubejs/server_scripts/a.js"
+echo "modified=[$(collect_repo_drift | cut -c1-60)]"
+rm "$d/repo/data/kubejs/server_scripts/autoclaim.js" "$d/repo/data/kubejs/server_scripts/other.js"
+git -C "$d/repo" checkout -q -- .
+echo "fixed=[$(collect_repo_drift)]"
+echo x > "$d/repo/data/kubejs/server_scripts/autoclaim.js"
+collect_repo_drift >/dev/null
+rm "$d/repo/data/kubejs/server_scripts/autoclaim.js"
+echo "cleared=[$(collect_repo_drift)]"
+echo x > "$d/repo/data/kubejs/server_scripts/autoclaim.js"
+echo "rearmed=[$(collect_repo_drift | cut -c1-40)]"
+'''
+rc, out, err = bash_eval(DRIFT)
+res = dict(l.split("=", 1) for l in out.splitlines() if "=[" in l)
+check("drift test ran", rc == 0, "rc=%s err=%s" % (rc, err.strip()[:300]))
+check("a clean repo reports nothing", res.get("clean") == "[]", repr(res.get("clean")))
+check("a file the repo ignores is not drift", res.get("ignored") == "[]", repr(res.get("ignored")))
+check("an untracked server-side script is reported high",
+      res.get("first", "").startswith("[high|Server differs from GitHub|")
+      and "autoclaim.js" in res.get("first", ""), repr(res.get("first")))
+check("the same drift is not reported twice", res.get("second") == "[]", repr(res.get("second")))
+check("a new drifted file reports again", "other.js" in res.get("changed", ""), repr(res.get("changed")))
+check("an edit to a tracked file is drift", res.get("modified", "").startswith("[high|"), repr(res.get("modified")))
+check("fixing the drift clears the record", res.get("fixed") == "[]", repr(res.get("fixed")))
+check("the IDENTICAL drift after a fix reports again, so the record was cleared", res.get("rearmed", "").startswith("[high|"), repr(res.get("rearmed")))
+check("the collector runs in main, not just exists",
+      re.search(r"collect_repo_drift;", alert_src) is not None)
+check("the collector only reads the repo",
+      "--no-optional-locks" in alert_src and "git -C \"$REPO_DIR\" status" not in alert_src.replace("--no-optional-locks -C", ""),
+      "git status without --no-optional-locks would take the index lock")
+
 print("== 12. the scripts parse ==")
 for f in (ALERT, INSTALL):
     proc = subprocess.run([BASH, "-n", f], capture_output=True, text=True)
