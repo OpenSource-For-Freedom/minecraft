@@ -133,10 +133,11 @@ repo (they hold the players' data), so your server makes its own:
 - **Spawn:** the spawn point is saved in the world, not the seed, so set it once
   to match the real server. Run this in game (you're op on your copy):
   ```
-  /setworldspawn 64 66 -96
+  /setworldspawn 587 98 87
   ```
   New players and anyone without a bed will then spawn where they do on the real
-  server.
+  server. The real server's spawn is set from `gitops/world_settings.conf` on
+  every deploy, so that file is the source of truth, not this page.
 - **Builds:** nothing built on the real server is in your copy, so the spawn
   spot will be bare land.
 - **Hub:** the real server has no hub set yet. If you're testing the hub and
@@ -145,9 +146,10 @@ repo (they hold the players' data), so your server makes its own:
 If your local world was made before the seed was added, start over with a
 fresh world (below), then run the `/setworldspawn` command above.
 
-The spawn and seed come from the real server. After each deploy the droplet
-reports them on the repo's Deployments page (`seed=...; spawn=X,Y,Z`). If the
-spawn there ever changes, update the command above.
+The seed comes from the real server. After each deploy the droplet reports it
+and the spawn on the repo's Deployments page (`seed=...; spawn=X,Y,Z`). To move
+the spawn, change `SPAWN` in `gitops/world_settings.conf` and update the command
+above to match; `tests/test_world_settings.py` fails if they disagree.
 
 ### Docker commands
 

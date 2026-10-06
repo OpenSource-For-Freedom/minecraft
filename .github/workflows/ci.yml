@@ -175,6 +175,9 @@ jobs:
       - name: Security alerting is honest in both directions
         run: python3 tests/test_security_alerts.py
 
+      - name: World settings are applied from the repo
+        run: python3 tests/test_world_settings.py
+
       # The design role is what lets a non-op edit the world. Its argument
       # checks are the whole security boundary, so they are tested against
       # inputs built to escape them: command blocks, NBT, selectors, chained
