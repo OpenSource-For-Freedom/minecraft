@@ -72,6 +72,7 @@ CONTAINER_STATE="$STATE_DIR/last-container-start"
 PENDING="$STATE_DIR/pending"
 PENDING_TRIES="$STATE_DIR/pending-tries"
 HEARTBEAT_STATE="$STATE_DIR/last-heartbeat"
+DRIFT_STATE="$STATE_DIR/last-drift"
 
 # Accounts expected to log in over SSH, space separated. Set by
 # install_alerts.sh in $ENV_FILE. Deliberately EMPTY here: see the note above.
@@ -305,6 +306,34 @@ collect_disk() {
     return 0
 }
 
+# --- Repo drift: anything on the droplet that git does not know about. The repo
+# --- is the source of truth and the server only receives from it, so a file or
+# --- edit that exists only here is code nobody reviewed. That is exactly how
+# --- autoclaim.js ran on the live server for weeks without ever being committed.
+# --- Reported when the SET of drifted files changes, not on every run: a drift
+# --- that re-posts every 15 minutes forever is the "permanent alert equals no
+# --- alert" trap from the top of this file. Fixing it (commit it, or delete it)
+# --- clears the record, so the same drift appearing again reports again.
+REPO_DIR="${REPO_DIR:-/root/minecraft}"
+
+collect_repo_drift() {
+    local list sig prev
+    [ -d "$REPO_DIR/.git" ] || return 0
+    # --no-optional-locks: this must only ever read. Ignored files (runtime
+    # state the server rewrites) are excluded by the repo's own .gitignore.
+    list="$(git --no-optional-locks -C "$REPO_DIR" status --porcelain --untracked-files=all 2>/dev/null | sort)"
+    if [ -z "$list" ]; then
+        rm -f "$DRIFT_STATE"
+        return 0
+    fi
+    sig="$(printf '%s' "$list" | cksum | cut -d' ' -f1)"
+    prev="$(cat "$DRIFT_STATE" 2>/dev/null || echo "")"
+    [ "$sig" = "$prev" ] && return 0
+    echo "$sig" > "$DRIFT_STATE"
+    echo "high|Server differs from GitHub|$(printf '%s' "$list" | head -n 5 | tr '\n' ';' | sed 's/;$//') - commit it to the repo or remove it"
+    return 0
+}
+
 # --- Watched players: joins, leaves, their chat, their /design commands (see
 # --- data/kubejs/server_scripts/design_role.js), and any command feedback the
 # --- server logs for them. For someone given access who is not yet fully
@@ -418,6 +447,7 @@ main() {
     events="$( { collect_ssh_success; collect_ssh_failures; collect_sudo_sensitive;
                  collect_fail2ban; collect_control_health; collect_container;
                  collect_sensitive_files; collect_new_users; collect_disk;
+                 collect_repo_drift;
                  collect_watched_players; } 2>/dev/null \
                | grep -v '^[[:space:]]*$' )"
 
