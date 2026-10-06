@@ -7,6 +7,7 @@ healthy deploy, and the docs must agree with it. Each check below is driven
 against the real script with a stand-in `docker`, because a settings file that
 is read but never applied looks identical to one that works.
 """
+import json
 import os
 import re
 import stat
@@ -100,6 +101,11 @@ check("CONTRIBUTING gives the same spawn command",
 check("CONTRIBUTING has no other /setworldspawn value",
       set(re.findall(r"/setworldspawn ([-\d ]+)", contrib)) == {SPAWN},
       repr(re.findall(r"/setworldspawn ([-\d ]+)", contrib)))
+zone = json.loads(read(os.path.join(ROOT, "data", "kubejs", "config", "designers.json")))
+sx, _, sz = (int(v) for v in SPAWN.split())
+check("the design zone is centred on the spawn in the conf",
+      (zone["zone_center_x"], zone["zone_center_z"]) == (sx, sz),
+      "zone %s,%s vs spawn %s,%s" % (zone["zone_center_x"], zone["zone_center_z"], sx, sz))
 check("CI runs this test", "tests/test_world_settings.py" in read(CI))
 check("bash -n apply_world_settings.sh",
       subprocess.run(["bash", "-n", APPLY]).returncode == 0)
