@@ -157,7 +157,32 @@ done
 
 if [ "$healthy" = true ]; then
     log "DEPLOY OK at ${NEW_SHA:0:8}"
-    gh_deployment_status success "server answering at ${NEW_SHA:0:8}"
+    # data/ is a bind mount, so a change that only touches KubeJS scripts or
+    # their config does not recreate the container, and a running server keeps
+    # the old scripts until something reloads them. Reload when they changed.
+    # Captured into a variable, not piped into grep -q: under pipefail an early
+    # grep exit can SIGPIPE git and make the test read as "nothing changed".
+    kubejs_changed=$(git diff --name-only "$OLD_SHA" "$NEW_SHA" -- data/kubejs 2>/dev/null || true)
+    if [ -n "$kubejs_changed" ]; then
+        log "KubeJS files changed; reloading scripts"
+        rcon reload
+    fi
+    # Publish the world seed in the deployment status, so it can be copied
+    # into SEED in docker-compose.yml for local copies. CI has no route in (no
+    # SSH, RCON not published), so the droplet reports it outward instead.
+    # Matched with a bash regex, not a pipe: `grep | head` under pipefail can
+    # SIGPIPE and abort a deploy that already succeeded.
+    seed=""
+    seed_out=$(rcon seed)
+    if [[ $seed_out =~ (-?[0-9]+) ]]; then seed=${BASH_REMATCH[1]}; fi
+    # Spawn and hub coordinates too, read by gitops/world_info.py. The world
+    # spawn can't be queried by any 1.20.1 command, and the hub lives in a
+    # gitignored file, so this is the only way they reach the repo. `|| true`
+    # because a world that can't be read must never fail a finished deploy.
+    world=$(python3 "$REPO_DIR/gitops/world_info.py" 2>/dev/null || true)
+    desc="server answering at ${NEW_SHA:0:8}${seed:+; seed=$seed}${world:+; $world}"
+    # GitHub rejects a status description longer than 140 characters.
+    gh_deployment_status success "${desc:0:140}"
     rcon say "Update complete. Welcome back."
     exit 0
 fi

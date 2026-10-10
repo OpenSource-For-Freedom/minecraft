@@ -35,7 +35,7 @@ jobs:
           egress-policy: audit
           allowed-presets: docker,maven
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false   # read-only checkout; no credential left on disk
 
@@ -68,6 +68,22 @@ jobs:
             1000*) echo "OK" ;;
             *) echo "FAIL: image must run as uid 1000"; exit 1 ;;
           esac
+
+      # The Dockerfile deletes base-image binaries this server never runs, to
+      # cut Trivy findings. Check both directions: the unused ones are gone, and
+      # nothing the server, the healthcheck or gitops/deploy.sh needs went with
+      # them. A missing rcon-cli or mc-monitor would break deploys, not CI.
+      - name: Unused base binaries removed, needed ones kept
+        run: |
+          docker run --rm --entrypoint sh minecraft-java:secure -c '
+            fail=0
+            for b in gosu restify easy-add pebble; do
+              if command -v "$b" >/dev/null 2>&1; then echo "STILL PRESENT: $b"; fail=1; else echo "removed  $b"; fi
+            done
+            for b in rcon-cli mc-monitor mc-server-runner mc-image-helper mc-health java; do
+              if command -v "$b" >/dev/null 2>&1; then echo "present  $b"; else echo "MISSING: $b"; fail=1; fi
+            done
+            exit $fail'
 
       - name: Container hardening assertions
         shell: bash
@@ -164,6 +180,13 @@ jobs:
       # whole batches of alerts.
       - name: Security alerting is honest in both directions
         run: python3 tests/test_security_alerts.py
+
+      # The design role is what lets a non-op edit the world. Its argument
+      # checks are the whole security boundary, so they are tested against
+      # inputs built to escape them: command blocks, NBT, selectors, chained
+      # commands, and edits outside the zone.
+      - name: Design role only allows safe commands
+        run: node tests/test_design_role.js
 
       - name: Shell scripts parse
         run: |
