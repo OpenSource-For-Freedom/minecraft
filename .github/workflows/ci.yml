@@ -144,6 +144,12 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      - name: Custom mods (no public listing to pin against) are reviewed
+        run: python3 tests/test_custom_mods_reviewed.py
+
+      - name: No per-player data tracked in data/world/ (public repo)
+        run: python3 tests/test_world_no_player_data.py
+
       # Generated and binary artefacts must not be tracked. A compiled .pyc for
       # .github/scripts/server_health.py rode along for months because
       # .gitignore had no __pycache__ rule, and `sync_client_pack.py --write`
@@ -157,6 +163,16 @@ jobs:
           bad=0
           for pat in '*.pyc' '__pycache__/*' '*.bak' '*.jar' '*.log' '*.zip'; do
             hits=$(git ls-files -- "$pat")
+            # custom-mods/*.jar is the one deliberate exception. Every other
+            # mod is a pinned Modrinth URL re-downloaded at boot, so tracking
+            # the jar would be pointless duplication. These have no public
+            # download at all - the jar IS the only copy, and
+            # tests/test_custom_mods_reviewed.py pins each one to a reviewed
+            # sha256 so it cannot be swapped silently. See custom-mods/README.
+            if [ "$pat" = '*.jar' ]; then
+              hits=$(printf '%s\n' "$hits" | grep -v '^custom-mods/' || true)
+            fi
+            hits=$(printf '%s\n' "$hits" | grep -v '^$' || true)
             if [ -n "$hits" ]; then echo "TRACKED $pat:"; echo "$hits"; bad=1; fi
           done
           # The Windows-era local server was untracked on 2026-09-12. Its

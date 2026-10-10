@@ -20,6 +20,7 @@ the URL now points at different bytes than we reviewed, which is a supply-chain
 signal worth failing on.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -31,6 +32,8 @@ import zipfile
 
 COMPOSE = "docker-compose.yml"
 PACK = "data/EduCraftClient.mrpack"
+CUSTOM_MODS_DIR = "custom-mods"
+CUSTOM_MODS_MANIFEST = "custom-mods/REVIEWED.json"
 API = "https://api.modrinth.com/v2"
 HDR = {"User-Agent": "educraft-pack-sync/1.0 (+github.com/OpenSource-For-Freedom/minecraft)"}
 
@@ -97,9 +100,53 @@ def build_entries():
     return entries, skipped
 
 
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def custom_mod_overrides():
+    """Jars from custom-mods/ that the client also needs.
+
+    These have no Modrinth URL to resolve (that is the entire reason they live
+    in custom-mods/ rather than docker-compose.yml's MODS - see
+    custom-mods/README.md), so they cannot become a normal modrinth.index.json
+    "files" entry, which requires a downloads URL. The .mrpack format's answer
+    for exactly this case is overrides/: files bundled directly in the pack
+    that a launcher extracts as-is, no download needed. tests/
+    test_custom_mods_reviewed.py already proves these jars match what was
+    reviewed; this trusts that and does not re-review anything.
+    """
+    if not os.path.exists(CUSTOM_MODS_MANIFEST):
+        return []
+    manifest = json.loads(open(CUSTOM_MODS_MANIFEST, encoding="utf-8").read())
+    out = []
+    for entry in manifest.get("mods", []):
+        if not entry.get("client_required"):
+            continue
+        jar = os.path.join(CUSTOM_MODS_DIR, entry["file"])
+        if not os.path.exists(jar):
+            raise SystemExit(f"FAIL: {CUSTOM_MODS_MANIFEST} lists {entry['file']!r} "
+                              f"as client-required but {jar} does not exist")
+        out.append({
+            "disk_path": jar,
+            "zip_path": f"overrides/mods/{entry['file']}",
+            "sha256": sha256_of(jar),
+        })
+    return out
+
+
 def current_pack():
     with zipfile.ZipFile(PACK) as z:
-        return json.loads(z.read("modrinth.index.json")), z.namelist()
+        idx = json.loads(z.read("modrinth.index.json"))
+        override_hashes = {}
+        for n in z.namelist():
+            if n.startswith("overrides/mods/") and not n.endswith("/"):
+                override_hashes[n] = hashlib.sha256(z.read(n)).hexdigest()
+        return idx, z.namelist(), override_hashes
 
 
 def desired_index(idx, entries):
@@ -132,9 +179,10 @@ def main():
     g.add_argument("--write", action="store_true", help="regenerate the pack")
     args = ap.parse_args()
 
-    idx, names = current_pack()
+    idx, names, have_overrides = current_pack()
     entries, skipped = build_entries()
     want, client_only = desired_index(idx, entries)
+    overrides = custom_mod_overrides()
 
     have = {f["path"]: f for f in idx["files"]}
     need = {f["path"]: f for f in want["files"]}
@@ -144,12 +192,18 @@ def main():
     changed = sorted(p for p in set(have) & set(need)
                      if have[p]["hashes"]["sha512"] != need[p]["hashes"]["sha512"])
 
+    want_overrides = {o["zip_path"]: o["sha256"] for o in overrides}
+    override_missing = sorted(set(want_overrides) - set(have_overrides))
+    override_changed = sorted(p for p in set(want_overrides) & set(have_overrides)
+                              if want_overrides[p] != have_overrides[p])
+
     print(f"  server mods      : {len(server_mod_urls())}")
     print(f"  server-only      : {len(skipped)} (excluded from the pack)")
     print(f"  client-only kept : {len(client_only)}")
+    print(f"  custom overrides : {len(overrides)} (from {CUSTOM_MODS_DIR}/, no Modrinth URL)")
     print(f"  pack should hold : {len(want['files'])}   currently holds: {len(idx['files'])}")
 
-    if not (missing or extra or changed):
+    if not (missing or extra or changed or override_missing or override_changed):
         print("\n  IN SYNC: every client-facing server mod is in the pack at the same version.")
         return 0
 
@@ -160,6 +214,10 @@ def main():
         print(f"      STALE in pack     : {os.path.basename(p)}")
     for p in changed:
         print(f"      VERSION/HASH DIFF : {os.path.basename(p)}")
+    for p in override_missing:
+        print(f"      MISSING override  : {os.path.basename(p)}")
+    for p in override_changed:
+        print(f"      STALE override    : {os.path.basename(p)}")
 
     if args.check:
         print("\n  Players on the published pack would be REFUSED at the FML handshake.")
@@ -170,14 +228,23 @@ def main():
     shutil.copy(PACK, PACK + ".bak")
     tmp = PACK + ".tmp"
     with zipfile.ZipFile(PACK) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        written = set()
         for item in zin.infolist():
             if item.filename == "modrinth.index.json":
                 continue
+            # A stale override gets replaced below with the reviewed jar's
+            # current bytes, not carried forward from the old zip.
+            if item.filename in want_overrides:
+                continue
             zout.writestr(item, zin.read(item.filename))
+            written.add(item.filename)
         zout.writestr("modrinth.index.json", json.dumps(want, indent=2))
+        for o in overrides:
+            with open(o["disk_path"], "rb") as fh:
+                zout.writestr(o["zip_path"], fh.read())
     os.replace(tmp, PACK)
-    print(f"\n  WROTE {PACK}: {len(want['files'])} mods, versionId "
-          f"{idx.get('versionId')} -> {want['versionId']}")
+    print(f"\n  WROTE {PACK}: {len(want['files'])} mods, {len(overrides)} custom override(s), "
+          f"versionId {idx.get('versionId')} -> {want['versionId']}")
     print("  Backup at " + PACK + ".bak")
     print("  REMEMBER: families must re-import. The Modrinth App creates a NEW")
     print("  instance on import rather than updating the existing one.")

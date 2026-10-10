@@ -41,9 +41,9 @@ jobs:
       status: ${{ steps.audit.outcome }}
       summary: ${{ steps.audit.outputs.summary }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false   # no git credential left on disk
+          persist-credentials: false
 
       - name: Audit pinned Modrinth URLs
         id: audit
@@ -59,6 +59,9 @@ jobs:
       - name: Client pack and server mod list still agree
         run: python3 tests/test_client_server_mods.py
 
+      - name: Custom mods (no public listing to pin against) are reviewed
+        run: python3 tests/test_custom_mods_reviewed.py
+
       - name: KubeJS scripts free of the silent Rhino hazards
         run: python3 tests/test_kubejs_script_hazards.py
 
@@ -66,11 +69,11 @@ jobs:
     name: Mod jars scanned for vulnerable bundled libraries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false   # no git credential left on disk
+          persist-credentials: false
 
-      - name: Download the pinned jars
+      - name: Download the pinned jars, add the reviewed custom ones
         run: |
           set -euo pipefail
           mkdir -p modjars
@@ -79,7 +82,14 @@ jobs:
           python3 tools/audit_mod_pins.py --print-urls | while read -r url; do
             curl -sSfL --retry 3 -o "modjars/$(basename "${url%%\?*}")" "$url"
           done
-          echo "downloaded $(ls modjars | wc -l) jars, $(du -sh modjars | cut -f1)"
+          # custom-mods/ has no CDN to pin against (see its README) and is
+          # reviewed by hand at commit time, not here - but "reviewed by hand
+          # once" is exactly the kind of claim that should keep being checked
+          # by machine too, the same way the CDN-pinned mods are every week.
+          if [ -d custom-mods ]; then
+            cp custom-mods/*.jar modjars/ 2>/dev/null || true
+          fi
+          echo "scanning $(ls modjars | wc -l) jars, $(du -sh modjars | cut -f1)"
 
       # rootfs, NOT fs. `trivy fs` silently ignores bare .jar files - it reports
       # "Number of language-specific files num=0" and a clean result, which reads
@@ -114,7 +124,7 @@ jobs:
           PY
 
       - name: Keep the evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: mod-jar-scan
           path: mod-jars.json
@@ -129,9 +139,9 @@ jobs:
       latest: ${{ steps.check.outputs.latest }}
       worth: ${{ steps.diff.outputs.worth }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false   # no git credential left on disk
+          persist-credentials: false
 
       - name: Compare the pinned digest against what itzg publishes now
         id: check
@@ -184,7 +194,7 @@ jobs:
 
       - name: Keep the evidence
         if: steps.check.outputs.newer == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: base-image-scan-diff
           path: |
@@ -203,11 +213,11 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false   # no git credential left on disk
+          persist-credentials: false
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: base-image-scan-diff
 
@@ -236,9 +246,7 @@ jobs:
           full diff is attached to the workflow run as an artifact.
 
           $(sed -n '1,4p' diff.txt)"
-          # The checkout keeps no credential (persist-credentials: false), so the
-          # token is handed to this one push only.
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
+          git push -u origin "$BRANCH"
           {
             echo "Upstream rebuilt the base image. This bump was **measured**, not assumed:"
             echo
@@ -249,7 +257,7 @@ jobs:
             echo "The Dockerfile header comment still needs updating by hand if the"
             echo "per-component counts it documents have changed."
           } > body.md
-          gh pr create --head "$BRANCH" --title "chore: bump base image digest" \
+          gh pr create --title "chore: bump base image digest" \
                        --body-file body.md \
                        --label dependencies --label docker
 
