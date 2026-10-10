@@ -128,6 +128,12 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      - name: Custom mods (no public listing to pin against) are reviewed
+        run: python3 tests/test_custom_mods_reviewed.py
+
+      - name: No per-player data tracked in data/world/ (public repo)
+        run: python3 tests/test_world_no_player_data.py
+
       # Generated and binary artefacts must not be tracked. A compiled .pyc for
       # .github/scripts/server_health.py rode along for months because
       # .gitignore had no __pycache__ rule, and `sync_client_pack.py --write`

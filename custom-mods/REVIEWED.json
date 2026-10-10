@@ -1,0 +1,17 @@
+{
+  "_comment": "Manifest for custom-mods/. Every jar in this directory must have an entry here with a matching sha256, or tests/test_custom_mods_reviewed.py fails the build. See custom-mods/README.md for why this directory exists and what 'reviewed' means here.",
+  "mods": [
+    {
+      "file": "keepmyvillage-1.0.0.jar",
+      "sha256": "4f65b41367c4ff7c66bc6bd399273689313ff9025981c9d8650681d84d423539",
+      "mod_id": "keepmyvillage",
+      "author": "Piasop (self-authored for this server, not a public download)",
+      "reviewed_date": "2026-10-10",
+      "forge_loader": "[47,) (Forge 47.x, Minecraft 1.20.1)",
+      "client_required": true,
+      "client_required_correction": "First written as false on the strength of the bytecode review below, which checked for CLIENT-RENDERING code and found none. That was the wrong question. The mod registers custom SoundEvents via DeferredRegister (see SoundRegistry.class in the review), and Forge requires the client to hold matching registry IDs for ANY custom registry entry - sound, block, item, whatever - regardless of whether the mod renders anything. Proven wrong by an actual join attempt: 'Failed to synchronize registry data from server... Pingaland - KeepMyVillage 1.0.0' until the identical jar was placed in the client's mods/ folder too, after which the join succeeded. 'No client-only code in the jar' and 'client does not need the jar' are different questions; do not conflate them again.",
+      "review_summary": "Full manual review: manifest/mods.toml inspected, all 5 class files disassembled with javap, full bytecode constant pool checked for network/exec/reflection/client-only APIs (none found - only vanilla Minecraft/Forge APIs, java.util/java.nio basics, and ClassLoader.getResourceAsStream reading its own bundled .txt resources). VillageProtectorState persists via Forge's own SavedData/NBT API, not raw file I/O. Trivy rootfs scan for bundled-library CVEs: zero findings (mod has no shaded third-party dependencies). Scanner liveness verified with a planted log4j-core 2.14.1 positive control in the same scan, which correctly flagged CVE-2021-44228 and was correctly absent from this jar's results.",
+      "purpose": "Blocks players from breaking blocks inside a village's boundaries; villager plays an angry sound/message instead. No config GUI, no client rendering, no custom networking - but DOES need installing client-side anyway, because it registers custom sound events (see client_required_correction above)."
+    }
+  ]
+}

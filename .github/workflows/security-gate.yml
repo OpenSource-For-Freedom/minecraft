@@ -42,6 +42,8 @@ jobs:
       summary: ${{ steps.audit.outputs.summary }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Audit pinned Modrinth URLs
         id: audit
@@ -57,6 +59,9 @@ jobs:
       - name: Client pack and server mod list still agree
         run: python3 tests/test_client_server_mods.py
 
+      - name: Custom mods (no public listing to pin against) are reviewed
+        run: python3 tests/test_custom_mods_reviewed.py
+
       - name: KubeJS scripts free of the silent Rhino hazards
         run: python3 tests/test_kubejs_script_hazards.py
 
@@ -65,8 +70,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Download the pinned jars
+      - name: Download the pinned jars, add the reviewed custom ones
         run: |
           set -euo pipefail
           mkdir -p modjars
@@ -75,7 +82,14 @@ jobs:
           python3 tools/audit_mod_pins.py --print-urls | while read -r url; do
             curl -sSfL --retry 3 -o "modjars/$(basename "${url%%\?*}")" "$url"
           done
-          echo "downloaded $(ls modjars | wc -l) jars, $(du -sh modjars | cut -f1)"
+          # custom-mods/ has no CDN to pin against (see its README) and is
+          # reviewed by hand at commit time, not here - but "reviewed by hand
+          # once" is exactly the kind of claim that should keep being checked
+          # by machine too, the same way the CDN-pinned mods are every week.
+          if [ -d custom-mods ]; then
+            cp custom-mods/*.jar modjars/ 2>/dev/null || true
+          fi
+          echo "scanning $(ls modjars | wc -l) jars, $(du -sh modjars | cut -f1)"
 
       # rootfs, NOT fs. `trivy fs` silently ignores bare .jar files - it reports
       # "Number of language-specific files num=0" and a clean result, which reads
@@ -126,6 +140,8 @@ jobs:
       worth: ${{ steps.diff.outputs.worth }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Compare the pinned digest against what itzg publishes now
         id: check
@@ -198,6 +214,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:

@@ -1,13 +1,3 @@
-// Opens the EduCraft guide book and sends a welcome message the FIRST time a
-// player ever joins (tracked in their own persistent data, so it never repeats
-// on later joins), and registers /guide so they can reopen the book themselves
-// anytime after that - external Patchouli books have no physical item to hold.
-//
-// Returning players get a short one-line reminder instead of the full welcome,
-// unless they've turned it off with /guide disable (re-enable with /guide
-// enable). Either way /guide itself always works - only the on-join reminder
-// is what gets toggled.
-
 PlayerEvents.loggedIn(event => {
     const player = event.player
     const data = player.persistentData

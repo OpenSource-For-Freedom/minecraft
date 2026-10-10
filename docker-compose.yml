@@ -247,5 +247,11 @@ services:
       TZ: "America/New_York"
     volumes:
       - ./data:/data
+      # First-party mods with no public Modrinth/CurseForge listing to pin a
+      # URL against - see custom-mods/README.md. itzg's image syncs this into
+      # /data/mods on every boot, AFTER REMOVE_OLD_MODS wipes and MODS
+      # re-downloads the pinned CDN jars, so it needs no change to
+      # REMOVE_OLD_MODS and does not weaken what it protects.
+      - ./custom-mods:/mods
     stdin_open: true
     tty: true
