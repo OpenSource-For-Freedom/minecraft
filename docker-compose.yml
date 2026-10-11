@@ -133,8 +133,8 @@ services:
       # there will be a seam where old terrain meets new.
       # spark (1.10.53-forge) is a profiler, added because every capacity
       # question about this server was being answered by guessing. MAX_PLAYERS
-      # is 20, but nobody has ever measured a tick: the number was typed, not
-      # tested. Create, Ad Astra's extra dimensions, Terralith, When Dungeons
+      # was 20 for months and nobody ever measured a tick: the number was
+      # typed, not tested. Create, Ad Astra's extra dimensions, Terralith, When Dungeons
       # Arise and CC:Tweaked's Lua all spend tick time on a loop that is largely
       # single-threaded, and worldgen has been observed at ~197% CPU. Until
       # something reports `/spark tickmonitor` and `/spark profiler`, both the
@@ -250,10 +250,27 @@ services:
       # If this ever opens to players outside the family, revisit it.
       ALLOW_FLIGHT: "true"
 
-      MAX_PLAYERS: "20"
+      # 5, not 20. Five is the real population: known family members on an
+      # enforced whitelist. 20 was typed, never measured and never tested, and
+      # a slot only costs memory while someone is in it, so the WORST case is
+      # what the box has to be sized for. Capping at the real population cuts
+      # that worst case by three quarters on the same hardware, which is what
+      # pays for the larger view and simulation distances below.
+      MAX_PLAYERS: "5"
       ONLINE_MODE: "TRUE"               # Java accounts only (blocks cracked/anonymous clients)
-      VIEW_DISTANCE: "12"
-      SIMULATION_DISTANCE: "8"
+      # Raised from 12 and 8 on 2026-10-11, paid for by MAX_PLAYERS dropping
+      # 20 -> 5. Loaded chunks scale with the square of view distance: 20
+      # players at 12 was up to 12,500 chunks, 5 players at 16 is at most
+      # 5,445, still well under half the old worst case on the same 4 vCPU /
+      # 8 GB box. 16 is where Terralith's terrain actually reads as scenery
+      # instead of a wall of fog; the client's own render distance still caps
+      # what each player sees. Simulation 10 is the vanilla default, so
+      # farms and Create contraptions keep ticking at normal range.
+      # The known cost is worldgen bursts while someone explores NEW terrain,
+      # which spark will show as tick spikes. The fix for that is chunk
+      # pre-generation against a stopped world, not lowering this again.
+      VIEW_DISTANCE: "16"
+      SIMULATION_DISTANCE: "10"
       TZ: "America/New_York"
     volumes:
       - ./data:/data
