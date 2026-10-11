@@ -21,17 +21,26 @@ services:
     # unlike a deploy.resources block. pids_limit caps processes (fork-bomb
     # guard); it can't live alongside a deploy.resources.limits block without
     # Compose flagging a phantom pids conflict.
-    mem_limit: 6.5g
-    mem_reservation: 4g
-    # Raised from 2.0 when the droplet went from 2 to 4 vCPUs (2026-08-07).
-    # This cap, not the droplet size, is what actually limits the server: the
-    # container sat pegged at ~197% of 2 cores during worldgen, and leaving
-    # this at 2.0 would have made the resize buy exactly nothing.
-    # 3.5, not 4.0: the host still needs cycles for sshd/tailscaled, auditd,
-    # the deploy timer and Docker itself. Handing the whole box to the JVM
-    # makes the admin plane unresponsive precisely when the server is busy,
-    # which is when you most need to get in.
-    cpus: 3.5
+    #
+    # Sized for the SMALL box: 2 vCPU / 4 GB (s-2vcpu-4gb), the 2026-10-11
+    # downsize from s-4vcpu-8gb to halve the bill from $48 to $24. These
+    # numbers are deliberately also safe on an 8 GB host, just wasteful there:
+    # a limit that fits the small plan cannot break the big one, while a limit
+    # sized for the big plan takes the small one down outright.
+    mem_limit: 3.2g
+    mem_reservation: 2g
+    # Docker REFUSES to create a container whose cpus exceeds the host core
+    # count: "Range of CPUs is from 0.01 to 2.00, as there are only 2 CPUs
+    # available". So a stale 3.5 on a 2 vCPU box is not a performance
+    # question, it is a hard failure - compose up fails, the health check
+    # fails, and the rollback restores the same bad value, leaving the server
+    # down until someone edits this line.
+    # 1.75, not 2.0: same 87.5% share of the box that 3.5-of-4 was, keeping
+    # the headroom the old comment here argued for. The host still needs
+    # cycles for sshd/tailscaled, auditd, the deploy timer and Docker itself,
+    # and handing the whole box to the JVM makes the admin plane unresponsive
+    # precisely when the server is busy, which is when you need to get in.
+    cpus: 1.75
     pids_limit: 512
     ulimits:
       nofile:
@@ -121,8 +130,9 @@ services:
       # local DROP rule and upstream filtering look identical to a port scan.
       # So: do not remove a mod from this list because a client shows a red X.
       # Verify reachability first. Chunky can be re-added whenever wanted.
-      # The CPU change from that same PR is the part that mattered and it stays:
-      # cpus was raised 2.0 -> 3.5 after the droplet went to 4 vCPU.
+      # The CPU change from that same PR followed the hardware and is now
+      # undone: cpus went 2.0 -> 3.5 for 4 vCPU, then to 1.75 when the box was
+      # downsized to 2 vCPU on 2026-10-11.
       #
       # When Dungeons Arise (2.1.58) adds very large hand-built structures:
       # pirate ships, mountain castles, sky keeps, undead pyramids. Verified
@@ -166,19 +176,25 @@ services:
       REMOVE_OLD_MODS: "TRUE"
       # Raised for Ad Astra, which adds five dimensions (Moon, Mars, Venus,
       # Mercury, Glacio) on top of Terralith and When Dungeons Arise.
-      # 5G heap inside a 6.5g container cap, NOT 6G. A JVM needs meaningful
-      # memory outside its heap: metaspace, code cache, GC structures, thread
-      # stacks and direct byte buffers. Setting the heap equal to the container
-      # limit is the classic way to get the kernel OOM-killer to kill the server
-      # under load, which looks exactly like a random crash. 1.5g of headroom is
-      # the margin that prevents it.
-      # The host has 7.8Gi total, so a 6.5g container leaves ~1.3Gi for the
-      # kernel, Docker, sshd, tailscaled, auditd and the deploy timer. Going
-      # higher starts trading the ability to log in for server memory, and this
-      # box has been locked out enough times already.
-      # A genuine 6G heap wants a 16 GB droplet, not this one.
-      INIT_MEMORY: "2G"
-      MAX_MEMORY: "5G"
+      # 2G heap inside a 3.2g container cap, for the 2 vCPU / 4 GB box. A JVM
+      # needs meaningful memory outside its heap: metaspace, code cache, GC
+      # structures, thread stacks and direct byte buffers. Setting the heap
+      # equal to the container limit is the classic way to get the kernel
+      # OOM-killer to kill the server under load, which looks exactly like a
+      # random crash. ~1.2g of headroom is the margin that prevents it.
+      # The host has 4 GB total, so a 3.2g container leaves ~800Mi for the
+      # kernel, Docker, sshd, tailscaled, auditd and the deploy timer.
+      #
+      # BE HONEST ABOUT THIS NUMBER: 2G is under-provisioned for the pack this
+      # server actually runs - roughly 30 mods including Create, CC:Tweaked,
+      # BlueMap, Terralith, When Dungeons Arise and Ad Astra's five extra
+      # dimensions. It ran on 5G before. Expect GC pressure and low TPS, and
+      # if it will not hold, the fix is to cut load rather than to raise this
+      # above the container cap: BlueMap's renderer is the heaviest consumer
+      # that costs no gameplay, then Ad Astra's dimension count, then view
+      # distance below.
+      INIT_MEMORY: "1G"
+      MAX_MEMORY: "2G"
       # PrismProtect's sqlite-jdbc can't locate its own bundled native lib
       # under Forge's per-mod module classloader and throws
       # NativeLibraryNotFoundException, leaving its DB connection null and
@@ -250,10 +266,22 @@ services:
       # If this ever opens to players outside the family, revisit it.
       ALLOW_FLIGHT: "true"
 
-      MAX_PLAYERS: "20"
+      # 5, not 20. 20 was typed, never measured, and never tested: the
+      # memory and tick cost of a slot is only paid when someone is in it,
+      # but the WORST case is what has to fit in the box, and on 4 GB it
+      # does not. Five is the actual population (known family members), so
+      # this caps the worst case at something this plan can hold instead of
+      # at something it cannot.
+      MAX_PLAYERS: "5"
       ONLINE_MODE: "TRUE"               # Java accounts only (blocks cracked/anonymous clients)
-      VIEW_DISTANCE: "12"
-      SIMULATION_DISTANCE: "8"
+      # Cut with the 2026-10-11 downsize (was 12 and 8). Loaded chunks scale
+      # with the square of view distance, so 12 -> 8 is about 56% fewer chunks
+      # held per player: the single biggest lever on both heap and tick time
+      # that costs no content. Simulation distance 6 still comfortably exceeds
+      # the 4-chunk radius that keeps a player's own machines and farms
+      # ticking, so Create contraptions near a player keep running.
+      VIEW_DISTANCE: "8"
+      SIMULATION_DISTANCE: "6"
       TZ: "America/New_York"
     volumes:
       - ./data:/data
