@@ -69,3 +69,17 @@ data/world/advancements/
 data/world/data/
 data/world/kubejs_persistent_data.nbt
 data/world/session.lock
+
+# data/world/ is NOT tracked. It was, briefly, so the hub world built on the
+# local test server could be deployed to the droplet once - and that worked.
+# Keeping it tracked does not: the droplet deploys with `git reset --hard`,
+# so every deploy would reset the live world to whatever snapshot was last
+# committed and erase anything players had built since. Region files are
+# binary, so git cannot merge the two, and whichever side is deployed next
+# silently destroys the other.
+#
+# The droplet's world is now the only real one. The local server is a
+# scratch box for testing scripts; its world is never pushed. To ship a
+# rebuilt hub again, copy it to the droplet deliberately rather than
+# re-tracking this directory.
+data/world/
