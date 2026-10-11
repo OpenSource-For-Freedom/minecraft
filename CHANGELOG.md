@@ -13,6 +13,22 @@ being corrected, and those are the ones most likely to save someone time later.
 
 ## [Unreleased]
 
+### Removed
+- **`keepmyvillage-1.0.0.jar` deleted from the server and the client pack.**
+  Players were being refused at the FML handshake unless they had re-imported
+  the pack, because the jar is `client_required` and only shipped in pack
+  1.3.0. The deeper problem was the reason it was tracked at all:
+  `REVIEWED.json` recorded it as "self-authored for this server, not a public
+  download", and that was false. Its own `mods.toml` names it
+  `Pingaland - KeepMyVillage` by `Piasop`, **All Rights Reserved**, built
+  2025-07-16 - a third-party mod published on CurseForge. It was therefore
+  somebody else's All-Rights-Reserved jar redistributed in a **public** repo
+  and inside `data/EduCraftClient.mrpack`. Removing it clears the lockout with
+  no family action needed (clients that still have the jar can join fine; an
+  extra client mod is tolerated, a missing one is not). Pack bumped to
+  versionId 1.4.0. `custom-mods/` is now empty and its README says what to
+  verify before anything goes back in. **No pack re-import required.**
+
 ### Security
 - **Removed unused base-image binaries and upgraded OpenSSL** (`Dockerfile`).
   `gosu` (22 Trivy findings) only runs when the container starts as root, and

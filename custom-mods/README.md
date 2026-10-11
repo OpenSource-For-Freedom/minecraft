@@ -7,6 +7,24 @@ against a hash the platform itself vouches for (see `tools/audit_mod_pins.py`).
 There is no platform here to vouch for anything - the author and the review are
 both local to this repo.
 
+**This directory is currently empty, and the bar for putting anything back in
+it is higher than it looks.** Its only occupant was `keepmyvillage-1.0.0.jar`,
+recorded in `REVIEWED.json` as "self-authored for this server, not a public
+download". That was wrong. The jar's own `mods.toml` named it
+`Pingaland - KeepMyVillage` by `Piasop`, licensed **All Rights Reserved**, built
+2025-07-16 - a published CurseForge mod by a third party. Tracking it here put
+somebody else's All-Rights-Reserved jar into a **public** repo and into
+`data/EduCraftClient.mrpack`, which is a licensing problem on top of a
+supply-chain one, and it also meant every family had to re-import the pack or
+be refused at the FML handshake.
+
+So before adding a jar here, establish *and write down* that it genuinely has
+no public listing - search CurseForge and Modrinth for the `displayName` and
+the author from `mods.toml`, not just the filename. A mod that IS published
+belongs in the pinned `MODS` list where the platform vouches for the hash, and
+its licence has to permit redistribution before it goes anywhere near the
+client pack.
+
 ## How a jar gets in here
 
 1. Full manual review: manifest, `mods.toml`, every class file disassembled
