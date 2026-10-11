@@ -11,7 +11,7 @@ updates:
   # also means they never update without something asking. This is that thing.
   # trivy.yml's pin especially: a stale scanner silently under-reports, which is
   # how a previous micrometer claim in the Dockerfile survived being wrong.
-  - package-ecosystem: actions
+  - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
@@ -41,3 +41,33 @@ updates:
       - dependencies
       - docker
       - needs-scan-diff
+      
+   - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore"
+    labels:
+      - dependencies
+      - pip
+      - needs-scan-diff
+
+   - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore"
+    labels:
+      - dependencies
+      - java
+      - needs-scan-diff
+
+
