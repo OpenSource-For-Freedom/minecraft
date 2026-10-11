@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """No per-player data may ever be tracked in data/world/, in a PUBLIC repo.
 
-data/world/ is tracked so contributors can pull a consistent world to develop
-and test against. What must never be tracked alongside it is anything that
-identifies or describes a specific real kid: exact inventory, position,
+data/world/ is NOT tracked at all any more - tests/test_world_not_tracked.py
+is what enforces that, and it is the check that matters. This one is the
+second line of defence for the case where the world becomes tracked again
+regardless: whatever else were to ship, nothing that identifies or
+describes a specific real kid: exact inventory, position,
 playtime, or - as of the hub feature in hub.js - their saved home
 coordinates. See .gitignore's comments next to data/world/ for the full list
 and why each entry is there.

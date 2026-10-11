@@ -147,6 +147,16 @@ jobs:
       - name: Custom mods (no public listing to pin against) are reviewed
         run: python3 tests/test_custom_mods_reviewed.py
 
+      # The save itself must never be tracked. It was, on main, in #64 and
+      # #67: the droplet pulled it on 2026-10-11 and the live world was
+      # replaced by a local snapshot. Untracking it again in #68 is just as
+      # dangerous in principle, because dropping a path from the index
+      # deletes it from the working tree on the next checkout. Either way
+      # the save is the one thing on this project that cannot be restored
+      # from the repo, so it does not travel in the repo.
+      - name: data/world/ is not tracked (a deploy must not rewrite the save)
+        run: python3 tests/test_world_not_tracked.py
+
       - name: No per-player data tracked in data/world/ (public repo)
         run: python3 tests/test_world_no_player_data.py
 
