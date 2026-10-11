@@ -12,16 +12,26 @@ data/config/
 data/.forge-manifest.json
 data/.run-forge.env
 data/kubejs/*/generated/
-data/kubejs/config/hub.json
-# Same reasoning as hub.json above: these are written by their own in-game
-# admin commands and hold coordinates that only mean something in the world
-# they were set in. Committing them would aim the droplet's boards at
-# wherever the local test world's happened to be.
-data/kubejs/config/leaderboard.json
-data/kubejs/config/challenges.json
+# hub.json, leaderboard.json, challenges.json and tacmap.json used to be
+# ignored here, on the reasoning that they hold coordinates which only mean
+# something in the world they were set in, so committing them would aim the
+# droplet's boards at wherever the local test world's happened to be.
+#
+# That reasoning inverted the moment data/world/ became tracked and the
+# droplet started running THIS world. The coordinates now mean exactly the
+# same thing on both machines, and ignoring them shipped a world full of
+# hologram entities with nothing to drive them: the droplet had no board
+# positions, so every board froze displaying text baked into the world file
+# at its last local refresh, and hub.json being absent meant the hub spawn
+# teleport silently never ran there at all.
+#
+# They are coordinates only - no UUIDs, no player names - so they are safe
+# in a public repo. Checked before untracking; keep it that way.
 data/kubejs/config/live_board.json
 data/kubejs/config/micromap.json
-data/kubejs/config/tacmap.json
+# starter_chests.json stays ignored for a different reason that has NOT
+# inverted: it records which player claimed which chest, by UUID and name.
+# That is per-player data and does not belong in a public repo.
 data/kubejs/config/starter_chests.json
 data/crash-reports/
 data/local/
@@ -59,3 +69,17 @@ data/world/advancements/
 data/world/data/
 data/world/kubejs_persistent_data.nbt
 data/world/session.lock
+
+# data/world/ is NOT tracked. It was, briefly, so the hub world built on the
+# local test server could be deployed to the droplet once - and that worked.
+# Keeping it tracked does not: the droplet deploys with `git reset --hard`,
+# so every deploy would reset the live world to whatever snapshot was last
+# committed and erase anything players had built since. Region files are
+# binary, so git cannot merge the two, and whichever side is deployed next
+# silently destroys the other.
+#
+# The droplet's world is now the only real one. The local server is a
+# scratch box for testing scripts; its world is never pushed. To ship a
+# rebuilt hub again, copy it to the droplet deliberately rather than
+# re-tracking this directory.
+data/world/

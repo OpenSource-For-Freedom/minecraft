@@ -1,0 +1,13 @@
+{
+	"spawn_every_join": true,
+	"spawn_dim": "minecraft:overworld",
+	"spawn_x": -165.43293151168922,
+	"spawn_y": 67,
+	"spawn_z": -153.54126610726868,
+	"spawn_yaw": 2.69842529296875,
+	"spawn_pitch": -1.9500240087509155,
+	"switch_dim": "",
+	"switch_x": 0,
+	"switch_y": 0,
+	"switch_z": 0
+}
