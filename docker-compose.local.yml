@@ -1,0 +1,15 @@
+# Local testing only. The real server never loads this file: gitops/deploy.sh
+# runs plain `docker compose`, which reads docker-compose.yml alone.
+#
+# Layered on top of docker-compose.yml so a local copy is impossible to mistake
+# for the real server in the Multiplayer list. Without it, a local server shows
+# the same name, MOTD and icon as the droplet.
+#
+# Use it by putting these two lines in a file called .env next to this one
+# (.env is gitignored), then run docker compose as usual:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.local.yml
+#   COMPOSE_PATH_SEPARATOR=:
+services:
+  minecraft:
+    environment:
+      MOTD: "§c§lLOCAL TEST SERVER§r§7 - your PC, not the real server"

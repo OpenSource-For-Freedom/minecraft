@@ -45,6 +45,11 @@ SERVER_ONLY_OK = {
     "playtimestatistics",
     "terralith",         # datapack worldgen, client_side=optional
     "dungeonsarise",     # When Dungeons Arise, client_side=unsupported
+    # spark is client_side=optional AND server_side=optional on Modrinth, so
+    # neither side is inferable from its metadata: it is a profiler, and the
+    # thing worth profiling is the server tick loop. Kept out of the pack on
+    # purpose so adding it costs no family a re-import.
+    "spark",
 }
 
 def norm(name):
@@ -99,6 +104,33 @@ def main():
         return 1
 
     print("  PASS: every server mod is either in the client pack or a known server-side mod")
+
+    # The LOADER has to match too, and it is easier to get wrong than the mods
+    # because nothing downloads it from a URL anyone reviews. With only
+    # VERSION: "1.20.1" set, the image installs whatever Forge build is promoted
+    # at container start; a local boot on 2026-09-12 got 47.4.10 while this pack
+    # declared 47.4.20 and Forge had shipped 47.4.23. Pin it, and keep the pin
+    # equal to what the pack tells families to install.
+    fm = re.search(r'^\s*FORGE_VERSION:\s*"([^"]+)"', compose, re.M)
+    pack_forge = idx.get("dependencies", {}).get("forge")
+    if not fm:
+        print("\nFAIL: FORGE_VERSION is not pinned in docker-compose.yml.")
+        print("  Without it the loader is resolved as 'latest promoted for this")
+        print("  Minecraft version' on every container start, so a restart can")
+        print("  change the loader under every mod with no commit and no review.")
+        print(f"  The client pack declares forge {pack_forge}; pin that.")
+        return 1
+    if not pack_forge:
+        print("\nFAIL: the client pack declares no forge dependency to compare against.")
+        return 1
+    if fm.group(1) != pack_forge:
+        print("\nFAIL: server and client pack disagree about the Forge build.")
+        print(f"    docker-compose.yml FORGE_VERSION : {fm.group(1)}")
+        print(f"    {PACK} declares          : {pack_forge}")
+        print("  Set them to the same build. Bumping one alone means families")
+        print("  install a loader the server is not running.")
+        return 1
+    print(f"  PASS: loader pinned and matched, forge {pack_forge} on both sides")
     return 0
 
 if __name__ == "__main__":

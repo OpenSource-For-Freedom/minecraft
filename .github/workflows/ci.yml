@@ -25,7 +25,7 @@ jobs:
       # Pinned to a full commit SHA, not a tag: a tag can be repointed, which is
       # exactly the class of attack this step exists to contain.
       - name: Legion harden runner
-        uses: Wraith-security/legion_runner@0f792305e304ccb691646fb3e34bf2327d46a3a0 # v1.0.56
+        uses: Wraith-security/legion_runner@b459e7433723418301974a1f05098607b7e8d027 # v1.0.61
         with:
           # Audit first, deliberately. Block mode with the wrong allowlist fails
           # the build, and this job legitimately reaches cdn.modrinth.com,
@@ -35,7 +35,9 @@ jobs:
           egress-policy: audit
           allowed-presets: docker,maven
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # read-only checkout; no credential left on disk
 
       - name: Compose file is valid
         run: docker compose config --quiet
@@ -66,6 +68,22 @@ jobs:
             1000*) echo "OK" ;;
             *) echo "FAIL: image must run as uid 1000"; exit 1 ;;
           esac
+
+      # The Dockerfile deletes base-image binaries this server never runs, to
+      # cut Trivy findings. Check both directions: the unused ones are gone, and
+      # nothing the server, the healthcheck or gitops/deploy.sh needs went with
+      # them. A missing rcon-cli or mc-monitor would break deploys, not CI.
+      - name: Unused base binaries removed, needed ones kept
+        run: |
+          docker run --rm --entrypoint sh minecraft-java:secure -c '
+            fail=0
+            for b in gosu restify easy-add pebble; do
+              if command -v "$b" >/dev/null 2>&1; then echo "STILL PRESENT: $b"; fail=1; else echo "removed  $b"; fi
+            done
+            for b in rcon-cli mc-monitor mc-server-runner mc-image-helper mc-health java; do
+              if command -v "$b" >/dev/null 2>&1; then echo "present  $b"; else echo "MISSING: $b"; fail=1; fi
+            done
+            exit $fail'
 
       - name: Container hardening assertions
         shell: bash
@@ -126,6 +144,22 @@ jobs:
       - name: Client pack and server mod list are compatible
         run: python3 tests/test_client_server_mods.py
 
+      - name: Custom mods (no public listing to pin against) are reviewed
+        run: python3 tests/test_custom_mods_reviewed.py
+
+      # The save itself must never be tracked. It was, on main, in #64 and
+      # #67: the droplet pulled it on 2026-10-11 and the live world was
+      # replaced by a local snapshot. Untracking it again in #68 is just as
+      # dangerous in principle, because dropping a path from the index
+      # deletes it from the working tree on the next checkout. Either way
+      # the save is the one thing on this project that cannot be restored
+      # from the repo, so it does not travel in the repo.
+      - name: data/world/ is not tracked (a deploy must not rewrite the save)
+        run: python3 tests/test_world_not_tracked.py
+
+      - name: No per-player data tracked in data/world/ (public repo)
+        run: python3 tests/test_world_no_player_data.py
+
       # CC:Tweaked hands children a programmable computer with an HTTP API. Its
       # stock rules allow every host, so any whitelisted player could make the
       # server issue outbound requests anywhere. This gate keeps the lockdown
@@ -140,11 +174,59 @@ jobs:
       - name: Playtime limiter is present, wired and observable
         run: python3 tests/test_playtime_limiter.py
 
+      # Generated and binary artefacts must not be tracked. A compiled .pyc for
+      # .github/scripts/server_health.py rode along for months because
+      # .gitignore had no __pycache__ rule, and `sync_client_pack.py --write`
+      # drops a .mrpack.bak next to the real pack that git then offers to
+      # commit. A second pack with a near-identical name and a different mod
+      # set is the trap that EduCraftClientServer.mrpack already was: a family
+      # downloads the wrong one and cannot join.
+      - name: No generated or binary artefacts tracked
+        shell: bash
+        run: |
+          bad=0
+          for pat in '*.pyc' '__pycache__/*' '*.bak' '*.jar' '*.log' '*.zip'; do
+            hits=$(git ls-files -- "$pat")
+            # custom-mods/*.jar is the one deliberate exception. Every other
+            # mod is a pinned Modrinth URL re-downloaded at boot, so tracking
+            # the jar would be pointless duplication. These have no public
+            # download at all - the jar IS the only copy, and
+            # tests/test_custom_mods_reviewed.py pins each one to a reviewed
+            # sha256 so it cannot be swapped silently. See custom-mods/README.
+            if [ "$pat" = '*.jar' ]; then
+              hits=$(printf '%s\n' "$hits" | grep -v '^custom-mods/' || true)
+            fi
+            hits=$(printf '%s\n' "$hits" | grep -v '^$' || true)
+            if [ -n "$hits" ]; then echo "TRACKED $pat:"; echo "$hits"; bad=1; fi
+          done
+          # The Windows-era local server was untracked on 2026-09-12. Its
+          # server.properties claimed white-list=false while the live server
+          # enforces the whitelist, so it read as documentation and was wrong.
+          hits=$(git ls-files -- 'server/')
+          if [ -n "$hits" ]; then echo "TRACKED server/ (dead Windows-era server):"; echo "$hits"; bad=1; fi
+          [ "$bad" -eq 0 ] && echo "clean: no generated, binary or dead files tracked"
+          exit $bad
+
+      # The security alerting is the only thing that tells anyone this box is in
+      # trouble, and none of it was gated here. It shipped with the live SSH
+      # account name as a hardcoded default in a PUBLIC repo, a watch-list loop
+      # whose entire body was `:`, and a JSON escaper that silently dropped
+      # whole batches of alerts.
+      - name: Security alerting is honest in both directions
+        run: python3 tests/test_security_alerts.py
+
+      # The design role is what lets a non-op edit the world. Its argument
+      # checks are the whole security boundary, so they are tested against
+      # inputs built to escape them: command blocks, NBT, selectors, chained
+      # commands, and edits outside the zone.
+      - name: Design role only allows safe commands
+        run: node tests/test_design_role.js
+
       - name: Shell scripts parse
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
                    add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh \
-                   tools/verify_cc_http.sh; do
+                   alerts/security_alert.sh alerts/install_alerts.sh tools/verify_cc_http.sh; do
             [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
           done
 

@@ -1,0 +1,4 @@
+{
+  "_comment": "Manifest for custom-mods/. Every jar in this directory must have an entry here with a matching sha256, or tests/test_custom_mods_reviewed.py fails the build. See custom-mods/README.md for why this directory exists and what 'reviewed' means here.",
+  "mods": []
+}

@@ -13,6 +13,22 @@ being corrected, and those are the ones most likely to save someone time later.
 
 ## [Unreleased]
 
+### Removed
+- **`keepmyvillage-1.0.0.jar` deleted from the server and the client pack.**
+  Players were being refused at the FML handshake unless they had re-imported
+  the pack, because the jar is `client_required` and only shipped in pack
+  1.3.0. The deeper problem was the reason it was tracked at all:
+  `REVIEWED.json` recorded it as "self-authored for this server, not a public
+  download", and that was false. Its own `mods.toml` names it
+  `Pingaland - KeepMyVillage` by `Piasop`, **All Rights Reserved**, built
+  2025-07-16 - a third-party mod published on CurseForge. It was therefore
+  somebody else's All-Rights-Reserved jar redistributed in a **public** repo
+  and inside `data/EduCraftClient.mrpack`. Removing it clears the lockout with
+  no family action needed (clients that still have the jar can join fine; an
+  extra client mod is tolerated, a missing one is not). Pack bumped to
+  versionId 1.4.0. `custom-mods/` is now empty and its README says what to
+  verify before anything goes back in. **No pack re-import required.**
+
 ### Security
 - **In-game computers can no longer call arbitrary hosts.** CC:Tweaked ships
   every child a programmable computer with an HTTP API, and its stock rules are
@@ -54,7 +70,49 @@ being corrected, and those are the ones most likely to save someone time later.
   running container proves it applied there. Run `tools/verify_cc_http.sh` after
   the first deploy carrying this change.
 
+- **Removed unused base-image binaries and upgraded OpenSSL** (`Dockerfile`).
+  `gosu` (22 Trivy findings) only runs when the container starts as root, and
+  this one runs as uid 1000. `restify` (8) is only used for Bukkit/Spigot.
+  `easy-add` and `pebble` are never called at runtime. All four are deleted;
+  `openssl`/`libssl3t64` are upgraded in place. Expected to clear about 33 of
+  the 51 open code scanning alerts. What remains is in binaries the server
+  uses (mc-image-helper's Java libraries, mc-monitor, rcon-cli) and needs
+  upstream fixes. A new CI step fails the build if a removed binary comes back
+  or a needed one goes missing.
+
 ### Added
+- **Hub spawn, player homes and an opt-in walkthrough**
+  (`data/kubejs/server_scripts/hub.js`). Every login lands the player in the
+  hub an op designates with `/hub set`, so the hub is the front door every
+  time, not only on first join. The way back out is the Home switch: a lever or
+  button an op binds by running `/hub switch` and right-clicking it, which
+  sends each player to the spot they saved with `/sethome` (or, if they have
+  not saved one, tells them how). `/home` does the same from anywhere, `/hub`
+  returns, and `/tutorial` plays a six-step walkthrough: a title card and a
+  chime per step, a framed block in chat, advancing itself every ~11s.
+  It starts itself once on a first visit and never interacts — the first cut
+  used clickable chat buttons and they were untouchable in practice, because
+  Minecraft only makes chat components clickable while the chat window is
+  open, which is not something a new player knows. `/tutorial skip` and
+  `/tutorial stop` are printed on every step.
+  Server-side only, **no pack re-import**. Nothing teleports anyone until
+  `/hub set` has been run, so the script is inert until the hub exists. Config
+  lives in `kubejs/config/hub.json`, which is **gitignored**: it holds
+  coordinates that only mean anything in the world they were set in.
+- **`tests/test_kubejs_script_hazards.py`** — a tripwire for two Rhino
+  behaviours that fail *silently* in KubeJS scripts, both found by loading a
+  script on a running server rather than by reading it:
+  1. `const`/`let` inside a `try` block throws "redeclaration of var" on the
+     **first** call, so the block is dead and the catch always wins. Because
+     these blocks exist to provide fallbacks, nothing errors: an early `hub.js`
+     read its entire config into default values and reported
+     `minecraft:overworld` for every dimension, with a clean log.
+  2. Every server script shares one global scope, so a top-level name declared
+     in two files kills the second to load. A `const CONFIG` in `hub.js` took
+     `playtime_limit.js` down with it — **the daily playtime cap silently
+     stopped loading**, and the only clue was `Loaded 2/4 KubeJS server
+     scripts`. The test fails on a genuine cross-file collision, not on merely
+     having globals, so the existing scripts pass unchanged.
 - **Open Parties and Claims**, required on both client and server (no
   dependencies to pull in). Integrates with Xaero's Minimap/World Map, already
   in the pack, so claims show up on the same map. Pack bumped to versionId
