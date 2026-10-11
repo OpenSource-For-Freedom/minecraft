@@ -115,6 +115,27 @@ if [ "${REQUIRE_CI:-true}" = "true" ]; then
     log "CI green (${succeeded}/${total}) for ${NEW_SHA:0:8}"
 fi
 
+# A revision that touches data/world/ rewrites the live save, in either
+# direction. Region files are binary, so a pull overwrites whatever players
+# have built; and a revision that UNTRACKS them deletes the save outright,
+# because dropping a path from the index deletes it from the working tree on
+# the next checkout. Both have been on main already: the world was tracked in
+# #64 and #67, deployed here on 2026-10-11, and untracked again in #68.
+#
+# This box holds the only real copy of the world, so it refuses rather than
+# trusting main to stay correct. Loud (exit 1, every tick) on purpose: a main
+# that would eat the save needs a human, not a quiet skip.
+#
+# Captured into a variable rather than piped into grep, for the same
+# SIGPIPE-under-pipefail reason documented at kubejs_changed below.
+world_touched=$(git diff --name-only "$OLD_SHA" "$NEW_SHA" -- data/world || true)
+if [ -n "$world_touched" ]; then
+    log "REFUSING ${NEW_SHA:0:8}: it changes data/world/, the live save"
+    printf '%s\n' "$world_touched" | sed -n '1,10p'
+    log "data/world/ must stay untracked; see .gitignore and tests/test_world_not_tracked.py"
+    exit 1
+fi
+
 gh_deployment_create "$NEW_SHA"
 
 # Back up before touching a running world. Restores are the real safety net;
