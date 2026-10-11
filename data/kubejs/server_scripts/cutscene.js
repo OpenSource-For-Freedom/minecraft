@@ -176,16 +176,96 @@
         return { dim: cfg.dim, x: f.x, y: f.y, z: f.z, yaw: f.yaw, pitch: 0 }
     }
 
+    // ------------------------------------------------ chunk preloading --
+
+    // The camera outruns chunk streaming: teleporting 20 times a second
+    // through terrain the client has never seen means it flies through grey
+    // void, because chunks are only sent once the viewer is near them and
+    // they arrive well behind the camera.
+    //
+    // Two things fix it together, and neither is enough alone:
+    //   1. forceload the ground the flight covers, so the SERVER has those
+    //      chunks resident and can send them immediately rather than
+    //      generating or reading them from disk mid-shot;
+    //   2. hold the camera still at frame 0 for a moment (WARMUP below) so
+    //      the CLIENT has time to receive and build them before anything
+    //      moves.
+    //
+    // Forceload is bounded deliberately. It is a memory cost for as long as
+    // it is held, and an unbounded box around a long flight would pin
+    // hundreds of chunks; past FORCELOAD_MAX we skip it entirely and rely on
+    // the warmup, rather than quietly pinning more than anyone intended.
+    var WARMUP = 70                 // ticks held at frame 0 (~3.5s)
+    var FORCELOAD_MAX = 400         // chunks; a 20x20 box
+
+    function pathBounds() {
+        if (cfg.frames.length === 0) return null
+        var f = cfg.frames[0]
+        var b = { minx: f.x, maxx: f.x, minz: f.z, maxz: f.z }
+        for (var i = 1; i < cfg.frames.length; i++) {
+            var p = cfg.frames[i]
+            if (p.x < b.minx) b.minx = p.x
+            if (p.x > b.maxx) b.maxx = p.x
+            if (p.z < b.minz) b.minz = p.z
+            if (p.z > b.maxz) b.maxz = p.z
+        }
+        return b
+    }
+
+    // Held once for everyone watching, not once per viewer: two players
+    // joining together would otherwise add and then remove the same ticket,
+    // and the first to finish would unload it from under the second.
+    var forceloadHolders = 0
+
+    function forceloadPath(server, on) {
+        if (cfg.dim === '') return
+        if (on) {
+            forceloadHolders++
+            if (forceloadHolders > 1) return
+        } else {
+            forceloadHolders--
+            if (forceloadHolders > 0) return
+            forceloadHolders = 0
+            server.runCommandSilent('execute in ' + cfg.dim + ' run forceload remove all')
+            return
+        }
+        var b = pathBounds()
+        if (!b) return
+        // One chunk of margin so the viewer is never looking at the ragged
+        // edge of the loaded area.
+        var cminx = Math.floor(b.minx / 16) - 1, cmaxx = Math.floor(b.maxx / 16) + 1
+        var cminz = Math.floor(b.minz / 16) - 1, cmaxz = Math.floor(b.maxz / 16) + 1
+        var count = (cmaxx - cminx + 1) * (cmaxz - cminz + 1)
+        if (count > FORCELOAD_MAX) {
+            console.info('[cutscene] flight covers ' + count + ' chunks, over the ' +
+                FORCELOAD_MAX + ' cap - skipping forceload, warmup only')
+            forceloadHolders = 0
+            return
+        }
+        server.runCommandSilent('execute in ' + cfg.dim + ' run forceload add ' +
+            (cminx * 16) + ' ' + (cminz * 16) + ' ' + (cmaxx * 16) + ' ' + (cmaxz * 16))
+    }
+
     function startPlayback(server, player) {
         if (cfg.frames.length === 0) return false
         var name = safeName(player.username)
         if (name === '') return false
-        playing[name] = { i: 0, gamemode: gameModeOf(player) }
+        playing[name] = { i: 0, gamemode: gameModeOf(player), warmup: WARMUP }
         // A marker on the player, not just in memory: if the server reloads or
         // they log out mid-shot, nothing in `playing` survives and they would
         // stay in spectator forever. The login handler below clears it.
         try { player.persistentData.putBoolean('introStuck', true) } catch (e) {}
         server.runCommandSilent('gamemode spectator ' + name)
+        forceloadPath(server, true)
+        // Put the camera on frame 0 immediately and leave it there for the
+        // warmup, so the client is loading the opening shot rather than
+        // wherever the player happened to spawn.
+        var f0 = cfg.frames[0]
+        server.runCommandSilent('execute in ' + cfg.dim + ' run tp ' + name + ' ' +
+            f0.x + ' ' + f0.y + ' ' + f0.z + ' ' + f0.yaw + ' ' + f0.pitch)
+        // Black out the warmup so the grey-void moment is never on screen.
+        server.runCommandSilent('title ' + name + ' times 0 ' + (WARMUP + 20) + ' 10')
+        server.runCommandSilent('title ' + name + ' title {"text":""}')
         return true
     }
 
@@ -193,6 +273,7 @@
         var st = playing[name]
         if (!st) return
         delete playing[name]
+        forceloadPath(server, false)
         restore(server, name, st.gamemode)
     }
 
@@ -236,6 +317,16 @@
         // --- driving playbacks ---
         for (var name in playing) {
             var st = playing[name]
+            // Warmup: hold on frame 0 while the client receives the chunks
+            // the opening shot looks at. Re-teleporting each tick keeps the
+            // camera pinned and the chunk requests centred on the shot.
+            if (st.warmup > 0) {
+                st.warmup--
+                var w = cfg.frames[0]
+                server.runCommandSilent('execute in ' + cfg.dim + ' run tp ' + name + ' ' +
+                    w.x + ' ' + w.y + ' ' + w.z + ' ' + w.yaw + ' ' + w.pitch)
+                continue
+            }
             var f = cfg.frames[st.i]
             if (!f) { endPlayback(server, name); continue }
             server.runCommandSilent('execute in ' + cfg.dim + ' run tp ' + name + ' ' +
@@ -267,6 +358,17 @@
         d.putBoolean('introSeen', true)
         d.putBoolean('introPending', true)
         d.putInt('introDelay', 0)
+    })
+
+    // A viewer who quits mid-shot must not leave their entry in `playing`:
+    // the tick loop would go on teleporting a player who is not there, and
+    // the forceload ticket would never be released.
+    PlayerEvents.loggedOut(event => {
+        var name = safeName(event.player.username)
+        if (playing[name]) {
+            delete playing[name]
+            forceloadPath(event.server, false)
+        }
     })
 
     // Give the client a moment to finish loading before yanking the camera,
