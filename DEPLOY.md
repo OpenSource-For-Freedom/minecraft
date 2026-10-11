@@ -100,21 +100,45 @@ with a cron job instead:
   tar czf ~/mc-backup-$(date +\%F).tgz -C ~/minecraft/data world ops.json whitelist.json server.properties
 ```
 
-> ### Daily playtime limits are NOT running
+> ### Daily playtime limits: what is actually running
 >
-> There used to be a Windows script (`playtime_limit.ps1`) that read each kid's
-> `play_time` from the server stats, and once they passed a daily cap (default
-> 120 minutes) removed them from the whitelist, which `ENFORCE_WHITELIST` turns
-> into an instant kick. It put them back at the next day rollover.
+> **CORRECTION (2026-09-09).** This section previously said "no time limit of any kind."
+> That was wrong, and had been wrong since 2026-08-15. Read this before trusting
+> either claim.
 >
-> It only ever worked against a local Windows host and has not run since the move
-> to the droplet. It was deleted rather than left in the repo pretending to be a
-> control that was actually switched off.
+> Two different limiters existed. The Windows one, `playtime_limit.ps1`, read
+> each kid's `play_time` from the server stats and removed them from the
+> whitelist past a daily cap, which `ENFORCE_WHITELIST` turns into an instant
+> kick. It only ever worked against a local Windows host, never ran on the
+> droplet, and was correctly deleted in #21.
 >
-> **So there is currently no time limit of any kind.** If you want one back, it
-> needs writing for Linux: a cron job every few minutes calling
-> `docker exec minecraft-java rcon-cli` to read stats and adjust the whitelist.
-> The original logic is in git history if it is ever wanted as a starting point.
+> The KubeJS one, `data/kubejs/server_scripts/playtime_limit.js`, was added
+> 2026-07-20 and has been tracked and mounted the whole time. #21 deleted the
+> PowerShell script and declared there was no limit at all, conflating the two.
+> `data/` is bind-mounted to `/data` and KubeJS reads `server_scripts/` from
+> there, so this script loads on every boot.
+>
+> **What it does.** Counts each player's seconds in `persistentData`, warns at
+> 10, 5 and 1 minutes remaining, and kicks at zero. Resets on the local date
+> rolling over in the server timezone, so no external scheduler is involved.
+> Ops are exempt, checked live against `ops.json`. The cap is
+> `data/kubejs/config/playtime_limits.json`: `default_minutes` for everyone,
+> `players` for per-child overrides, `exempt` for non-ops with no cap.
+>
+> **How to check it is running**, so nobody has to take this document's word
+> for it again:
+>
+> ```bash
+> docker logs minecraft-java 2>&1 | grep playtime
+> # expect: [playtime] limiter ACTIVE - default 120 min/day, ...
+> ```
+>
+> In game, any player can run `/playtime` for their own usage and remaining
+> time. An op sees the limiter's configured state instead, because ops are
+> exempt and their own numbers would prove nothing.
+>
+> After editing the config, apply it with `/kubejs reload server_scripts` or
+> restart the container. The config is read once at script load.
 
 ## Later: add a domain
 

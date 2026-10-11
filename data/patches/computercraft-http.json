@@ -1,0 +1,58 @@
+{
+  "file": "/data/world/serverconfig/computercraft-server.toml",
+  "ops": [
+    {
+      "$set": {
+        "path": "$.http.enabled",
+        "value": true
+      }
+    },
+    {
+      "$set": {
+        "path": "$.http.websocket_enabled",
+        "value": false
+      }
+    },
+    {
+      "$set": {
+        "path": "$.http.max_requests",
+        "value": 8
+      }
+    },
+    {
+      "$set": {
+        "path": "$.http.rules",
+        "value": [
+          {
+            "host": "$private",
+            "action": "deny"
+          },
+          {
+            "host": "127.0.0.0/8",
+            "action": "deny"
+          },
+          {
+            "host": "10.0.0.0/8",
+            "action": "deny"
+          },
+          {
+            "host": "172.16.0.0/12",
+            "action": "deny"
+          },
+          {
+            "host": "192.168.0.0/16",
+            "action": "deny"
+          },
+          {
+            "host": "169.254.0.0/16",
+            "action": "deny"
+          },
+          {
+            "host": "*",
+            "action": "deny"
+          }
+        ]
+      }
+    }
+  ]
+}
