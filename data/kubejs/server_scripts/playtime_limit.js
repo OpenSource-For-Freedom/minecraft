@@ -1,15 +1,3 @@
-// Daily playtime cap per player. Config: kubejs/config/playtime_limits.json.
-// After editing the config, run `/kubejs reload server_scripts` or restart the
-// container to apply changes (config is read once at script load).
-//
-// Ops are always exempt, checked live against ops.json - opping/deopping a
-// player takes effect immediately, no config edit needed. The config's own
-// "exempt" list is for anyone else you want unlimited without making them op.
-//
-// Time is tracked in each player's own persistent data (survives relogs and
-// restarts within the same day) and resets automatically when the local date
-// (server TZ) changes - no external scheduler needed.
-
 const LocalDate = Java.loadClass('java.time.LocalDate')
 const CONFIG = JsonIO.read('kubejs/config/playtime_limits.json') || { default_minutes: 120, exempt: [], players: {} }
 

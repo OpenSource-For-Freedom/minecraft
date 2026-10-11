@@ -9,7 +9,7 @@ Only players you add can join. See `docker-compose.yml` for all safety settings.
 
 
 ## Players join with the mod pack
-- Installed immediatly in the server, none needed by the player thanks to [FULL_HEARTS](https://fullhearts.app/) !!!
+- Installed immediately in the server, none needed by the player thanks to [FULL_HEARTS](https://fullhearts.app/) !!!
 
 ![fullhearts](fullhearts.png)
 

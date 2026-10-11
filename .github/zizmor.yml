@@ -1,0 +1,15 @@
+# zizmor configuration (https://docs.zizmor.sh/configuration/).
+#
+# Every third-party action must be pinned to a full commit hash. The only
+# exception is the Legion runner hardener, which is allowed a ref (release
+# tag) pin so it can be bumped by tag; it is still pinned to a hash today.
+#
+# No dangerous triggers are ignored here: none of the workflows use
+# pull_request_target, workflow_run, or issue_comment, so there is nothing
+# to allow-list.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin
+        "Wraith-security/legion_runner": ref-pin
