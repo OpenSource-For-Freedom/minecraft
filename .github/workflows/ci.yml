@@ -85,6 +85,20 @@ jobs:
             done
             exit $fail'
 
+      # Every checkout sets persist-credentials: false (zizmor enforces it), so
+      # a workflow that pushes must pass the token to the push itself. A plain
+      # `git push origin` fails with "could not read Username". That shipped,
+      # was fixed, and came back in a later merge, so it is checked here.
+      - name: Workflow pushes carry their own token
+        run: |
+          bad=$(grep -nE '^[[:space:]]*git push' .github/workflows/*.yml | grep -v 'x-access-token' || true)
+          if [ -n "$bad" ]; then
+            echo "FAIL: git push without an explicit token (the checkout keeps none):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "PASS: every workflow git push passes its token explicitly"
+
       - name: Container hardening assertions
         shell: bash
         run: |
