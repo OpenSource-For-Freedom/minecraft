@@ -1,0 +1,27 @@
+[Unit]
+Description=Sync website-managed whitelist entries from fullhearts.app
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Token, mode and URL. Root-only, mode 600, never in git (see install_fullhearts_sync.sh).
+EnvironmentFile=/etc/educraft-sync.env
+# Optional: problems go to the same Discord webhook as the security alerts.
+EnvironmentFile=-/etc/minecraft-alerts.env
+ExecStart=/usr/bin/python3 /root/minecraft/gitops/fullhearts_sync.py
+TimeoutStartSec=120
+
+# Needs root only for `docker exec`. It reads the server's data files and
+# writes nothing but its own ledger and lock.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/educraft-sync /run
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+StateDirectory=educraft-sync
+StateDirectoryMode=0700
