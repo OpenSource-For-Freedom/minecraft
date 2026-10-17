@@ -16,9 +16,10 @@
 # permanently dirty, which makes deploy.sh abort every run until it is untracked.
 #
 # After that, docker-compose.yml is the single source of truth for settings and
-# rosters (WHITELIST / OPS env vars, with OVERRIDE_WHITELIST=true and
-# OVERRIDE_OPS=true so the image SYNCHRONIZEs the json files from them).
-# Adding a kid then becomes: edit compose, commit, push - the deploy applies it.
+# the ops roster. The whitelist is NOT synchronized from compose: WHITELIST
+# only merges names in, and OVERRIDE_WHITELIST must stay off, because
+# gitops/fullhearts_sync.py adds paying families' kids to the live whitelist
+# and a compose override would wipe them on every deploy. CI enforces this.
 set -euo pipefail
 
 REPO_DIR=/root/minecraft

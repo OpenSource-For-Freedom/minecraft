@@ -201,6 +201,12 @@ jobs:
       - name: Security alerting is honest in both directions
         run: python3 tests/test_security_alerts.py
 
+      # The sync edits the live whitelist from a list fullhearts.app sends.
+      # This holds it to never touching a player it did not add, and fails
+      # if compose ever turns on OVERRIDE_WHITELIST.
+      - name: FullHearts whitelist sync never touches hand-added players
+        run: python3 tests/test_fullhearts_sync.py
+
       # The design role is what lets a non-op edit the world. Its argument
       # checks are the whole security boundary, so they are tested against
       # inputs built to escape them: command blocks, NBT, selectors, chained
@@ -212,7 +218,7 @@ jobs:
         run: |
           for f in gitops/deploy.sh gitops/install_gitops.sh bootstrap_droplet.sh harden_sshd.sh \
                    add_admin_user.sh server-audit.sh tests/test_droplet_hardening.sh \
-                   alerts/security_alert.sh alerts/install_alerts.sh; do
+                   alerts/security_alert.sh alerts/install_alerts.sh gitops/install_fullhearts_sync.sh; do
             [ -f "$f" ] && bash -n "$f" && echo "OK  $f"
           done
 
