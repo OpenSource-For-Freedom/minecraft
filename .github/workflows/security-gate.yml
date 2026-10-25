@@ -224,29 +224,42 @@ jobs:
       - name: Branch, bump, PR
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           CURRENT: ${{ needs.base-image.outputs.current }}
           LATEST: ${{ needs.base-image.outputs.latest }}
         run: |
           set -euo pipefail
           BRANCH="chore/base-image-${LATEST#sha256:}"
           BRANCH="${BRANCH:0:40}"
+          # A branch can exist without a PR: the 2026-10-05 run pushed one and
+          # then failed at the PR step, and "branch exists, so a PR exists"
+          # would have skipped this digest forever. Check for the PR itself.
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            echo "Branch $BRANCH already exists; a PR is already open for this digest."
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
-          sed -i "s|$CURRENT|$LATEST|" Dockerfile
-          git add Dockerfile
-          git commit -m "chore: bump base image to ${LATEST:0:19}
+            open=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if [ "$open" != "0" ]; then
+              echo "A PR is already open for $BRANCH."
+              exit 0
+            fi
+            echo "Branch $BRANCH exists with no open PR; opening one."
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout -b "$BRANCH"
+            sed -i "s|$CURRENT|$LATEST|" Dockerfile
+            git add Dockerfile
+            git commit -m "chore: bump base image to ${LATEST:0:19}
 
           Measured, not assumed: both images built and scanned with the same
           trivy settings CI uses, then diffed with tools/diff_trivy.py. The
           full diff is attached to the workflow run as an artifact.
 
           $(sed -n '1,4p' diff.txt)"
-          git push -u origin "$BRANCH"
+            # The checkout keeps no credential (persist-credentials: false, which
+            # zizmor requires), so the token is handed to this one push only.
+            # A plain `git push origin` fails with "could not read Username";
+            # that is how the 2026-10-12 run failed.
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$BRANCH"
+          fi
           {
             echo "Upstream rebuilt the base image. This bump was **measured**, not assumed:"
             echo
@@ -256,10 +269,17 @@ jobs:
             echo
             echo "The Dockerfile header comment still needs updating by hand if the"
             echo "per-component counts it documents have changed."
+            echo
+            echo "Opened by the Security gate workflow with GITHUB_TOKEN, which does not"
+            echo "trigger other workflows. Push any commit to this branch, or close and"
+            echo "reopen it, to get CI and Trivy results before merging."
           } > body.md
-          gh pr create --title "chore: bump base image digest" \
-                       --body-file body.md \
-                       --label dependencies --label docker
+          # --head because the branch has no upstream set. No --label: the repo
+          # has no "dependencies" or "docker" labels, and a missing label makes
+          # gh refuse the whole PR, which is how the 2026-10-05 run failed.
+          gh pr create --head "$BRANCH" --base main \
+                       --title "chore: bump base image digest" \
+                       --body-file body.md
 
   notify:
     name: Tell Discord if anything failed
