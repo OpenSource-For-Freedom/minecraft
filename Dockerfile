@@ -68,7 +68,7 @@
 # refreshed deps. Ask itzg; do not re-pin blindly hoping a digest moves it -
 # build both and diff the scans, which is what moved this pin and is what
 # .github/workflows/security-gate.yml now does every week.
-FROM itzg/minecraft-server:java21@sha256:54149e92235f24e7d0df68c2e435b96e0a8b899c54701adddf35830bb479adb9
+FROM itzg/minecraft-server:java21@sha256:7b047e11ced52f1cbfe694ed9eb96e998fb374c582158f1af651009c9a975fca
 LABEL org.opencontainers.image.source="https://github.com/OpenSource-For-Freedom/minecraft" \
       org.opencontainers.image.description="EduCraft kid-safe Forge 1.20.1 server, hardened build"
 
